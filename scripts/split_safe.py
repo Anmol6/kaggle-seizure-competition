@@ -61,7 +61,7 @@ def main(argv):
             print(filename)
             if(outputf):
                 print(os.path.join(outputf, os.path.basename(filename[0])))
-                os.rename(filename, os.path.join(outputf, os.path.basename(filename[0])))
+                os.rename(filename[0], os.path.join(outputf, os.path.basename(filename[0])))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
