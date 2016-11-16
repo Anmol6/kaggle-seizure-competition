@@ -36,26 +36,32 @@ class SafeDataFilter:
 
 def main(argv):
     inputf = ''
+    outputf = ''
     try:
-        opts, args = getopt.getopt(argv, "i:", ["ifile="])
+        opts, args = getopt.getopt(argv, "i:o:", ["idir=", "odir"])
     except getopt.GetoptError:
-        print( 'test.py -i <inputfile>' )
+        print( 'test.py -i <inputdir> -o <outputdir>' )
         sys.exit(2)
     
     for opt, arg in opts:
-        if opt in ("-i", "--ifile"):
+        if opt in ("-i", "--idir"):
             inputf = arg
+    if opt in ("-o", "--odir"):
+            outputf = arg
     
     if(not inputf):
-        print( 'test.py -i <inputfile>' )
+        print( 'test.py -i <inputdir>' )
         sys.exit(2)
 
     # print out safe files
     dataf = SafeDataFilter()
     if(os.path.isdir(inputf)):
-        listf = dataf.filter_safe(os.listdir(inputf))
+        listf = dataf.filter_safe([os.path.join(inputf, f) for f in os.listdir(inputf)])
         for filename in listf:
             print(filename)
+            if(outputf):
+                print(os.path.join(outputf, os.path.basename(filename[0])))
+                os.rename(filename, os.path.join(outputf, os.path.basename(filename[0])))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
