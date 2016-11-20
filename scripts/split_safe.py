@@ -33,6 +33,14 @@ class SafeDataFilter:
                 except:
                     pass
         return safelistf
+    
+    def get_label(self, filename):
+        filenames = zip(*self.safelist)[0]
+        try:
+            i = filenames.index(namef)
+            return self.safelist[i][1]
+        except:
+            return None
 
 def main(argv):
     inputf = ''
