@@ -3,7 +3,7 @@ import sys, getopt
 import os
 
 class SafeDataFilter: 
-    def __init__(self, csv_path = 'train_and_test_data_labels_safe.csv'):
+    def __init__(self, csv_path = os.path.join(os.path.dirname(__file__), 'train_and_test_data_labels_safe.csv')):
         self.safelist = []
         with open(csv_path) as csvf:
             reader = csv.DictReader(csvf)

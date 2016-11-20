@@ -1,10 +1,13 @@
 import numpy as np
 from functools import partial
 #from multiprocessing import Pool
+import matplotlib.pyplot as plt
+from matplotlib import cm
 from pandas import DataFrame
 import scipy as sc
 import scipy.signal
 import os
+import pdb
 
 
 
@@ -43,10 +46,15 @@ def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_
             xw = x[i, w * sampling_frequency: (w + win_length_sec) * sampling_frequency]
             fft = np.log10(np.absolute(np.fft.rfft(xw)))
             fft_freq = np.fft.rfftfreq(n=xw.shape[-1], d=1.0 / sampling_frequency)
+            
+            if(frame_num == 1): print(fft_freq)
+            
             xc[:nfreq_bands, frame_num] = group_into_bands(fft, fft_freq, nfreq_bands)
             if 'std' in features:
                 xc[-1, frame_num] = np.std(xw)
         x2[i, :, :] = xc
+    print(np.amax(x2))
+    print(np.amin(x2))
     return x2
 
 # filters out the low freq and high freq 
@@ -57,24 +65,6 @@ def filter(x, new_sampling_frequency, data_length_sec, lowcut, highcut):
     b, a = sc.signal.butter(5, np.array([lowcut, highcut]) / nyq, btype='band')
     x_filt = sc.signal.lfilter(b, a, x1, axis=1)
     return np.float32(x_filt)
-
-f = np.load('/Users/Anuar_The_Great/desktop/ML/train_1_npy/1_1_0.npy')
-# compute_fft accepts a matrix of channels x time, so we gotta transpose
-x = f.T  
-data_length_sec = 600
-sampling_frequency = 400
-nfreq_bands = 6    # can play around with these:
-win_length_sec = 60 
-stride_sec = 60
-features = "meanlog_std"  # will create a new additional bin of standard deviation of other bins
-
-
-# Test one observation
-new_x = compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
-print(new_x.shape)
-#print new_x
-
-
 # Computes X and y from all the .npy files in a directory
 # X = n x channels x filters x time-frames
 # y = n x 1
@@ -86,7 +76,8 @@ def compute_X_Y(direc):
         if filename.endswith('.npy'):
             f = np.load(direc + filename)
             f = f.T
-            new_x = compute_fft(f, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
+            filtered = filter_freq(f, 400, 600, 0.1, 180.0)
+            new_x = compute_fft(filtered, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
             X[i, ] = new_x
             if filename.endswith('1.npy'):
                 y[i] = 1
@@ -98,7 +89,33 @@ def compute_X_Y(direc):
     
     return X, y
 
+'''
 direc_train = '/Users/Anuar_The_Great/desktop/ML/train_1_npy_train/'
 direc_test = '/Users/Anuar_The_Great/desktop/ML/train_1_npy_test/'
 X_train, y_train = compute_X_Y(direc_train)
 X_test, y_test = compute_X_Y(direc_test)
+'''
+if __name__ == "__main__":
+    data_length_sec = 600
+    sampling_frequency = 400
+    nfreq_bands = 12    # can play around with these:
+    win_length_sec = 25 
+    stride_sec = 1
+    features = "meanlog_std"  # will create a new additional bin of standard deviation of other bins
+
+
+    f = np.load('data/train_1_npy/1_1_0.npy')['data'][()]
+    # compute_fft accepts a matrix of channels x time, so we gotta transpose
+    x = f.T  
+    
+    # Test one observation
+    filtered = filter(x, 400, 600, 0.1, 180.0)
+    new_x = compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
+    #pdb.set_trace()
+    print(new_x.shape)
+    #print new_x
+    print(new_x[0])
+    img2 = plt.imshow(new_x[0][0:-1],interpolation='nearest', cmap = cm.gist_rainbow, origin='lower')
+    plt.show()
+    img2 = plt.imshow(new_x[1][0:-1],interpolation='nearest', cmap = cm.gist_rainbow, origin='lower')
+    plt.show()
