@@ -21,7 +21,7 @@ if __name__ == "__main__":
     #f = np.load('data/train_1_npy/1_1_0.npy')['data'][()]
     #f = np.load('data/test_1_npy/safe/1_1182.npy')['data'][()] Broken
     #f = np.load('data/test_1_npy/safe/1_107.npy')['data'][()]
-    f = np.load('data/train_2_npy/2_539_0.npy')['data'][()]
+    f = np.load('data/train_2_npy/2_539_0.npy')#['data'][()]
     print(f.shape)
 
 #    pdb.set_trace()

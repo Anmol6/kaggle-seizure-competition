@@ -96,8 +96,9 @@ def compute_X_unsafe_opt(direc, outdir, data_length_sec, sampling_frequency, nfr
 def flush():
     inputdir = 'data'
     outputdir = 'data/ffts'
-    files = ['train_1_npy', 'train_2_npy', 'train_3_npy', 'test_1_npy', 'test_2_npy', 'test_3_npy']
-    indirs = [os.path.join(inputdir,x) for x in files]
+    #files = ['train_1_npy', 'train_2_npy', 'train_3_npy', 'test_1_npy', 'test_2_npy', 'test_3_npy']
+    files = ['train_2_npy', 'train_3_npy', 'train_2_npy', 'train_3_npy', 'train_2_npy', 'train_3_npy']
+    #indirs = [os.path.join(inputdir,x) for x in files]
     outdirs= [os.path.join(outputdir,x) for x in files]
     inouts = zip(indirs,outdirs)
 
@@ -136,6 +137,7 @@ def doone(inout):
 
         compute_X_unsafe_opt(inputdir, outputdir, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
         print('safe')
+        
         # check if there is a safe folder in input dir
         if os.path.exists(os.path.join(inputdir, 'safe')):
             compute_X_Y_opt(os.path.join(inputdir,'safe'), outputdir, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
@@ -144,6 +146,40 @@ def doone(inout):
         # Put all exception text into an exception and raise that
         print(inout)
         raise Exception("".join(traceback.format_exception(*sys.exc_info())))
+
+def dooneMulti(inout):
+    data_length_sec = 600
+    sampling_frequency = 400
+    nfreq_bands = 12    # can play around with these:
+    win_length_sec = 4 
+    stride_sec = 1
+    features = "meanlog_std"  # will create a new additional bin of standard deviation of other bins
+
+    print(inout)
+    
+    try:
+        inputdir, outputdir = inout
+
+        #compute_X_unsafe_opt(inputdir, outputdir, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
+        print('safe')
+        try:
+            os.makedirs(os.path.join(outputdir,'1'))
+            os.makedirs(os.path.join(outputdir,'2'))
+            os.makedirs(os.path.join(outputdir,'3'))
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+ 
+        # check if there is a safe folder in input dir
+        if os.path.exists(os.path.join(inputdir, 'safe')):
+            # split the work in two
+            compute_X_Y_opt(os.path.join(inputdir,'safe'), outputdir, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
+    
+    except:
+        # Put all exception text into an exception and raise that
+        print(inout)
+        raise Exception("".join(traceback.format_exception(*sys.exc_info())))
+
 
 if __name__ == "__main__":
     flush()
