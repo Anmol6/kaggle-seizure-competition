@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import os
 import sys, getopt
+import time
 
 def compute_X_Y_opt(direc, outdir, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features):
     safesplit = SafeDataFilter() 

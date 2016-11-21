@@ -26,10 +26,9 @@ def group_into_bands(fft, fft_freq, nfreq_bands):
     else:
         raise ValueError('wrong number of frequency bands')
     freq_bands = np.digitize(fft_freq, bands)
-    print(freq_bands)
+    #print(freq_bands)
     df = DataFrame({'fft': fft, 'band': freq_bands})
     df = df.groupby('band').mean()
-    pdb.set_trace()
     return df.fft[1:-1]
 '''
 def fgroup_into_bands(fft, fft_freq, nfreq_bands):
