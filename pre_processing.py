@@ -8,6 +8,7 @@ import scipy as sc
 import scipy.signal
 import os
 import pdb
+import time
 
 def group_into_bands(fft, fft_freq, nfreq_bands):
     if nfreq_bands == 178:
@@ -25,6 +26,7 @@ def group_into_bands(fft, fft_freq, nfreq_bands):
         bands = [0.1, 4, 8, 12, 21, 30, 50, 70, 100, 180]
     else:
         raise ValueError('wrong number of frequency bands')
+    
     freq_bands = np.digitize(fft_freq, bands)
     #print(freq_bands)
     df = DataFrame({'fft': fft, 'band': freq_bands})
@@ -66,6 +68,26 @@ def fgroup_into_bands(fft, fft_freq, nfreq_bands):
 '''
 
 
+class BandGrouper:
+    # expects the same bands and same input frequencies for all
+    def __init__(fft_freq, nfreq_bands):
+    if nfreq_bands == 178:
+        bands = range(1, 180)
+    elif nfreq_bands == 4:
+        bands = [0.1, 4, 8, 12, 30]
+    elif nfreq_bands == 6:
+        bands = [0.1, 4, 8, 12, 30, 70, 180]
+    # http://onlinelibrary.wiley.com/doi/10.1111/j.1528-1167.2011.03138.x/pdf
+    elif nfreq_bands == 8:
+        bands = [0.1, 4, 8, 12, 30, 50, 70, 100, 180]
+    elif nfreq_bands == 12:
+        bands = [0.5, 4, 8, 12, 30, 40, 50, 60, 70, 85, 100, 140, 180]
+    elif nfreq_bands == 9:
+        bands = [0.1, 4, 8, 12, 21, 30, 50, 70, 100, 180]
+    else:
+        raise ValueError('wrong number of frequency bands')
+   
+
 # returns channels x bins x time-frames
 def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features):
     n_channels = x.shape[0]
@@ -73,31 +95,65 @@ def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_
     n_fbins = nfreq_bands + 1 if 'std' in features else nfreq_bands
 
     x2 = np.zeros((n_channels, n_fbins, n_timesteps))
+    count = 0
     for i in range(n_channels):
         xc = np.zeros((n_fbins, n_timesteps))
         for frame_num, w in enumerate(range(0, data_length_sec - win_length_sec + 1, stride_sec)):
+            count += 1
             #print frame_num, w
             xw = x[i, w * sampling_frequency: (w + win_length_sec) * sampling_frequency]
+
+            #st = time.clock()
             fft = np.log10(np.absolute(np.fft.rfft(xw, axis = -1)))
+            #end = time.clock()
+            #print("LOGFFT: " + str(end-st))
+
+            st = time.clock()
             fft_freq = np.fft.rfftfreq(n=xw.shape[-1], d=1.0 / sampling_frequency)
+            fft = np.log10(np.absolute(np.fft.rfft(xw, axis = -1)))
+            end = time.clock()
+            if(count % 111 == 0): print("RFFTFREQ: " + str(end-st))
+
             
             #if(frame_num == 1): print(fft_freq)
             
+            st = time.clock()
             xc[:nfreq_bands, frame_num] = group_into_bands(fft, fft_freq, nfreq_bands)
+            end = time.clock()
+            if(count % 111 == 0): print("GroupBands: " + str(end-st))
+
+            st = time.clock()
             if 'std' in features:
                 xc[-1, frame_num] = np.std(xw)
+            end = time.clock()
+            if(count % 111 == 0): print("STD: " + str(end-st))
+        st = time.clock()
         x2[i, :, :] = xc
+        end = time.clock()
+        print("ASSIGN: " + str(end-st))
+  
+    print(count)
     print(np.amax(x2))
     print(np.amin(x2))
     return x2
 
 # filters out the low freq and high freq 
 def filter_opt(x, new_sampling_frequency, data_length_sec, lowcut, highcut):
+    st = time.clock()
     x1 = scipy.signal.resample(x, new_sampling_frequency * data_length_sec, axis=1)
-
+    end = time.clock()
+    print("Resample: " + str(end-st))
     nyq = 0.5 * new_sampling_frequency
+    
+    st = time.clock()
     b, a = sc.signal.butter(5, np.array([lowcut, highcut]) / nyq, btype='band')
+    end = time.clock()
+    print("Butter: " + str(end-st))
+    
+    st = time.clock()
     x_filt = sc.signal.lfilter(b, a, x1, axis=1)
+    end = time.clock()
+    print("lFilter: " + str(end-st))
     return np.float32(x_filt)
 # Computes X and y from all the .npy files in a directory
 # X = n x channels x filters x time-frames
