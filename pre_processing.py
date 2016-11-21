@@ -26,9 +26,46 @@ def group_into_bands(fft, fft_freq, nfreq_bands):
     else:
         raise ValueError('wrong number of frequency bands')
     freq_bands = np.digitize(fft_freq, bands)
+    print(freq_bands)
     df = DataFrame({'fft': fft, 'band': freq_bands})
     df = df.groupby('band').mean()
+    pdb.set_trace()
     return df.fft[1:-1]
+'''
+def fgroup_into_bands(fft, fft_freq, nfreq_bands):
+    if nfreq_bands == 178:
+        bands = range(1, 180)
+    elif nfreq_bands == 4:
+        bands = [0.1, 4, 8, 12, 30]
+    elif nfreq_bands == 6:
+        bands = [0.1, 4, 8, 12, 30, 70, 180]
+    # http://onlinelibrary.wiley.com/doi/10.1111/j.1528-1167.2011.03138.x/pdf
+    elif nfreq_bands == 8:
+        bands = [0.1, 4, 8, 12, 30, 50, 70, 100, 180]
+    elif nfreq_bands == 12:
+        bands = [0.5, 4, 8, 12, 30, 40, 50, 60, 70, 85, 100, 140, 180]
+    elif nfreq_bands == 9:
+        bands = [0.1, 4, 8, 12, 21, 30, 50, 70, 100, 180]
+    else:
+        raise ValueError('wrong number of frequency bands')
+    freq_bands = np.digitize(fft_freq, bands)
+    cutoff_index = [0]
+    
+    for n in xrange(freq_bands.size):
+        if(freq_bands[n] != freq_bands[cutoff_index[-1]]):
+            cutoff_index.append(n)
+    
+    # the last case is special since it goes to the end
+    # also we dont need the first bin since we disregard frequencies below lowest bin
+    for n in xrange(1,cutoff_index.size-1)
+        np 
+    # we assume that fft_freq is only increasing
+    #df = DataFrame({'fft': fft, 'band': freq_bands})
+    #df = df.groupby('band').mean()
+    
+    return df.fft[1:-1]
+'''
+
 
 # returns channels x bins x time-frames
 def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features):
