@@ -29,10 +29,20 @@ def group_into_bands(fft, fft_freq, nfreq_bands):
     
     freq_bands = np.digitize(fft_freq, bands)
     #print(freq_bands)
+    st = time.clock()
     df = DataFrame({'fft': fft, 'band': freq_bands})
+    end = time.clock()
+    print("DF: " + str(end-st))
+
+
+    st = time.clock()
     df = df.groupby('band').mean()
+    end = time.clock()
+    print("DFM: " + str(end-st))
+
+
     return df.fft[1:-1]
-'''
+
 def fgroup_into_bands(fft, fft_freq, nfreq_bands):
     if nfreq_bands == 178:
         bands = range(1, 180)
@@ -65,28 +75,6 @@ def fgroup_into_bands(fft, fft_freq, nfreq_bands):
     #df = df.groupby('band').mean()
     
     return df.fft[1:-1]
-'''
-
-
-class BandGrouper:
-    # expects the same bands and same input frequencies for all
-    def __init__(fft_freq, nfreq_bands):
-    if nfreq_bands == 178:
-        bands = range(1, 180)
-    elif nfreq_bands == 4:
-        bands = [0.1, 4, 8, 12, 30]
-    elif nfreq_bands == 6:
-        bands = [0.1, 4, 8, 12, 30, 70, 180]
-    # http://onlinelibrary.wiley.com/doi/10.1111/j.1528-1167.2011.03138.x/pdf
-    elif nfreq_bands == 8:
-        bands = [0.1, 4, 8, 12, 30, 50, 70, 100, 180]
-    elif nfreq_bands == 12:
-        bands = [0.5, 4, 8, 12, 30, 40, 50, 60, 70, 85, 100, 140, 180]
-    elif nfreq_bands == 9:
-        bands = [0.1, 4, 8, 12, 21, 30, 50, 70, 100, 180]
-    else:
-        raise ValueError('wrong number of frequency bands')
-   
 
 # returns channels x bins x time-frames
 def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features):
@@ -103,10 +91,10 @@ def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_
             #print frame_num, w
             xw = x[i, w * sampling_frequency: (w + win_length_sec) * sampling_frequency]
 
-            #st = time.clock()
+            st = time.clock()
             fft = np.log10(np.absolute(np.fft.rfft(xw, axis = -1)))
-            #end = time.clock()
-            #print("LOGFFT: " + str(end-st))
+            end = time.clock()
+            if(count % 111 == 0): print("LOGFFT: " + str(end-st))
 
             st = time.clock()
             fft_freq = np.fft.rfftfreq(n=xw.shape[-1], d=1.0 / sampling_frequency)
