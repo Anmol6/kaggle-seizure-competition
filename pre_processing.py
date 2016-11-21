@@ -68,8 +68,9 @@ def fgroup_into_bands(fft, fft_freq, nfreq_bands):
     
     # the last case is special since it goes to the end
     # also we dont need the first bin since we disregard frequencies below lowest bin
+    df=np.zeros(nfreq_bands)
     for n in xrange(1,cutoff_index.size-1)
-        np 
+        df[n-1] = 
     # we assume that fft_freq is only increasing
     #df = DataFrame({'fft': fft, 'band': freq_bands})
     #df = df.groupby('band').mean()
