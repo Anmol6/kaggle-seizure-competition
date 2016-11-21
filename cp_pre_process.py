@@ -1,5 +1,6 @@
+import numpy as np
 import pre_processing
-import scripts.split_safe.SafeDataFilter
+from scripts.split_safe import SafeDataFilter
 
 def compute_X_Y_opt(direc, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features):
     safesplit = SafeDataFilter() 
