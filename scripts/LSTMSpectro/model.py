@@ -43,13 +43,12 @@ print('X_test shape:', X_test.shape)
 print('Build model...')
 
 model = Sequential()
-model.add(Embedding(max_features, embedding_size, input_length=maxlen))
-model.add(Dropout(0.25))
 model.add(Convolution1D(nb_filter=nb_filter,
                         filter_length=filter_length,
                         border_mode='valid',
                         activation='relu',
                         subsample_length=1))
+model.add(Dropout(0.25))
 
 model.add(MaxPooling1D(pool_length=pool_length))
 model.add(LSTM(lstm_output_size))
