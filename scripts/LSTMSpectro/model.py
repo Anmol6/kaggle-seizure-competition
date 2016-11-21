@@ -30,7 +30,7 @@ Only 2 epochs are needed as the dataset is very small.
 '''
 
 print('Loading data...')
-(X_train, y_train), (X_test, y_test) = (
+(X_train, y_train), (X_test, y_test) =  
 print(len(X_train), 'train sequences')
 print(len(X_test), 'test sequences')
 

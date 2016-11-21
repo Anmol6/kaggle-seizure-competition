@@ -9,8 +9,6 @@ import scipy.signal
 import os
 import pdb
 
-
-
 def group_into_bands(fft, fft_freq, nfreq_bands):
     if nfreq_bands == 178:
         bands = range(1, 180)
@@ -22,7 +20,7 @@ def group_into_bands(fft, fft_freq, nfreq_bands):
     elif nfreq_bands == 8:
         bands = [0.1, 4, 8, 12, 30, 50, 70, 100, 180]
     elif nfreq_bands == 12:
-        bands = [0.1, 4, 8, 12, 30, 40, 50, 60, 70, 85, 100, 140, 180]
+        bands = [0.5, 4, 8, 12, 30, 40, 50, 60, 70, 85, 100, 140, 180]
     elif nfreq_bands == 9:
         bands = [0.1, 4, 8, 12, 21, 30, 50, 70, 100, 180]
     else:
@@ -58,7 +56,7 @@ def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_
     return x2
 
 # filters out the low freq and high freq 
-def filter(x, new_sampling_frequency, data_length_sec, lowcut, highcut):
+def filter_opt(x, new_sampling_frequency, data_length_sec, lowcut, highcut):
     x1 = scipy.signal.resample(x, new_sampling_frequency * data_length_sec, axis=1)
 
     nyq = 0.5 * new_sampling_frequency
