@@ -42,10 +42,10 @@ def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_
         for frame_num, w in enumerate(range(0, data_length_sec - win_length_sec + 1, stride_sec)):
             #print frame_num, w
             xw = x[i, w * sampling_frequency: (w + win_length_sec) * sampling_frequency]
-            fft = np.log10(np.absolute(np.fft.rfft(xw)))
+            fft = np.log10(np.absolute(np.fft.rfft(xw, axis = -1)))
             fft_freq = np.fft.rfftfreq(n=xw.shape[-1], d=1.0 / sampling_frequency)
             
-            if(frame_num == 1): print(fft_freq)
+            #if(frame_num == 1): print(fft_freq)
             
             xc[:nfreq_bands, frame_num] = group_into_bands(fft, fft_freq, nfreq_bands)
             if 'std' in features:

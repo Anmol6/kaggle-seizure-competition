@@ -34,7 +34,8 @@ class SafeDataFilter:
                     pass
         return safelistf
     
-    def get_label(self, filename):
+    def get_label(self, filen):
+        namef, _ = os.path.splitext(os.path.basename(filen))
         filenames = zip(*self.safelist)[0]
         try:
             i = filenames.index(namef)
