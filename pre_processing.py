@@ -29,16 +29,16 @@ def group_into_bands(fft, fft_freq, nfreq_bands):
     
     freq_bands = np.digitize(fft_freq, bands)
     #print(freq_bands)
-    st = time.clock()
+    #st = time.clock()
     df = DataFrame({'fft': fft, 'band': freq_bands})
-    end = time.clock()
-    print("DF: " + str(end-st))
+    #end = time.clock()
+    #print("DF: " + str(end-st))
 
 
-    st = time.clock()
+    #st = time.clock()
     df = df.groupby('band').mean()
-    end = time.clock()
-    print("DFM: " + str(end-st))
+    #end = time.clock()
+    #print("DFM: " + str(end-st))
 
 
     return df.fft[1:-1]
@@ -69,13 +69,14 @@ def fgroup_into_bands(fft, fft_freq, nfreq_bands):
     # the last case is special since it goes to the end
     # also we dont need the first bin since we disregard frequencies below lowest bin
     df=np.zeros(nfreq_bands)
-    for n in xrange(1,cutoff_index.size-1)
-        df[n-1] = 
+    for n in xrange(2,len(cutoff_index)-1):
+        df[n-2] = np.mean(fft[cutoff_index[n-1]:cutoff_index[n]]) 
+    df[-1] = np.mean(fft[cutoff_index[-2]:cutoff_index[-1]])
     # we assume that fft_freq is only increasing
     #df = DataFrame({'fft': fft, 'band': freq_bands})
     #df = df.groupby('band').mean()
     
-    return df.fft[1:-1]
+    return df
 
 # returns channels x bins x time-frames
 def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features):
@@ -105,11 +106,22 @@ def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_
 
             
             #if(frame_num == 1): print(fft_freq)
-            
+            '''  
             st = time.clock()
-            xc[:nfreq_bands, frame_num] = group_into_bands(fft, fft_freq, nfreq_bands)
+            if(count % 111 == 0):print(group_into_bands(fft, fft_freq, nfreq_bands))
             end = time.clock()
             if(count % 111 == 0): print("GroupBands: " + str(end-st))
+           
+            st = time.clock()
+            if(count % 111 == 0):print(fgroup_into_bands(fft, fft_freq, nfreq_bands))
+            end = time.clock()
+            if(count % 111 == 0): print("FGroupBands: " + str(end-st))
+            '''
+
+            st = time.clock()
+            xc[:nfreq_bands, frame_num] = fgroup_into_bands(fft, fft_freq, nfreq_bands)
+            end = time.clock()
+            if(count % 111 == 0): print("FGroupBands: " + str(end-st))
 
             st = time.clock()
             if 'std' in features:
