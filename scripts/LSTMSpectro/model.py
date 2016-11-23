@@ -12,8 +12,7 @@ from keras.layers import LSTM, Bidirectional
 from keras.layers import Convolution1D, MaxPooling1D
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score
-
+import sklearn.metrics as metrics 
 print('Loading data...')
 X_o = np.load('data/ffts/train_1_npy/X_new.npy')
 y_o = np.load('data/ffts/train_1_npy/y_new.npy') 
@@ -44,6 +43,13 @@ plt.show()
 '''
 print(X_all.shape)
 
+# one hot encode
+y_s = np.zeros((y_all.shape[0], 2))
+print(y_all)
+y_s[:, 1] = (y_all == 1).reshape(y_all.shape[0],)
+y_s[:, 0] = (y_all == 0).reshape(y_all.shape[0],)
+print(y_s)
+
 max_features = 208 
 maxlen = 597
 
@@ -56,8 +62,8 @@ nb_filter = 64
 lstm_output_size = 70
 
 # Training
-batch_size = 330
-nb_epoch = 5
+batch_size = 220
+nb_epoch = 30
 
 '''
 Note:
@@ -76,15 +82,15 @@ model.add(Dropout(0.20))
 #model.add(MaxPooling1D(pool_length=pool_length))
 model.add(Bidirectional(LSTM(lstm_output_size, return_sequences=False)))
 model.add(Dropout(0.20))
-model.add(Dense(1))
-model.add(Activation('sigmoid'))
+model.add(Dense(2))
+model.add(Activation('softmax'))
 
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
                 metrics=['accuracy'])
 
 
-X_train,X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.2, stratify=y_all) 
+X_train,X_test, y_train, y_test = train_test_split(X_all, y_s, test_size=0.2, stratify=y_all) 
 print(X_train.shape, 'train sequences')
 print(y_train.shape, 'test sequences')
 print(X_test.shape, 'test sequences')
@@ -98,14 +104,31 @@ print('X_train shape:', X_train.shape)
 print('X_test shape:', X_test.shape)
 '''
 
-
 print('Train...')
-model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch,
+model.fit(X_train, y_train,class_weight={0: 1.0, 1: 9.14}, batch_size=batch_size
+        , nb_epoch=nb_epoch,
           validation_data=(X_test, y_test))
 
 score, acc = model.evaluate(X_test, y_test, batch_size=batch_size)
 print('Test score:', score)
 print('Test accuracy:', acc)
 
-preds = model.predict_classes(X_test)
-print('ROC AUC:', roc_auc_score(y_test, preds))
+preds = model.predict_proba(X_test)
+print(preds)
+roc_auc = metrics.roc_auc_score(y_test[:,1], preds[:,1])
+print('ROC AUC:', roc_auc)
+
+fpr, tpr, thresholds = metrics.roc_curve(y_test[:,1], preds[:,1])
+print(thresholds)
+plt.figure()
+lw = 2
+plt.plot(fpr, tpr, color='darkorange',
+                 lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver operating characteristic example')
+plt.legend(loc="lower right")
+plt.show()
