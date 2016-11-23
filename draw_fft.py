@@ -48,7 +48,7 @@ if __name__ == "__main__":
     print(new_x.shape)
     #print new_x
     print(new_x[0])
-    img2 = plt.imshow(new_x[0][0:-1],interpolation='nearest', cmap = cm.gist_rainbow, origin='lower')
+    img2 = plt.imshow(new_x[0][0:],interpolation='nearest', cmap = cm.gist_rainbow, origin='lower')
     plt.show()
     img2 = plt.imshow(new_x[1][0:-1],interpolation='nearest', cmap = cm.gist_rainbow, origin='lower')
     plt.show()

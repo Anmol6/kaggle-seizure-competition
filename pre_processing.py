@@ -118,6 +118,9 @@ def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_
             end = time.clock()
             if(count % 111 == 0): print("FGroupBands: " + str(end-st))
             '''
+            
+            # test if both are equivalent
+            #print(fgroup_into_bands(fft, fft_freq, nfreq_bands)-group_into_bands(fft, fft_freq, nfreq_bands))
 
             #st = time.clock()
             xc[:nfreq_bands, frame_num] = fgroup_into_bands(fft, fft_freq, nfreq_bands)
