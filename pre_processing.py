@@ -93,16 +93,16 @@ def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_
             #print frame_num, w
             xw = x[i, w * sampling_frequency: (w + win_length_sec) * sampling_frequency]
 
-            st = time.clock()
+            #st = time.clock()
             fft = np.log10(np.absolute(np.fft.rfft(xw, axis = -1)))
-            end = time.clock()
-            if(count % 111 == 0): print("LOGFFT: " + str(end-st))
+            #end = time.clock()
+            #if(count % 111 == 0): print("LOGFFT: " + str(end-st))
 
-            st = time.clock()
+            #st = time.clock()
             fft_freq = np.fft.rfftfreq(n=xw.shape[-1], d=1.0 / sampling_frequency)
             fft = np.log10(np.absolute(np.fft.rfft(xw, axis = -1)))
-            end = time.clock()
-            if(count % 111 == 0): print("RFFTFREQ: " + str(end-st))
+            #end = time.clock()
+            #if(count % 111 == 0): print("RFFTFREQ: " + str(end-st))
 
             
             #if(frame_num == 1): print(fft_freq)
@@ -118,20 +118,20 @@ def compute_fft(x, data_length_sec, sampling_frequency, nfreq_bands, win_length_
             if(count % 111 == 0): print("FGroupBands: " + str(end-st))
             '''
 
-            st = time.clock()
+            #st = time.clock()
             xc[:nfreq_bands, frame_num] = fgroup_into_bands(fft, fft_freq, nfreq_bands)
-            end = time.clock()
-            if(count % 111 == 0): print("FGroupBands: " + str(end-st))
+            #end = time.clock()
+            #if(count % 111 == 0): print("FGroupBands: " + str(end-st))
 
-            st = time.clock()
+            #st = time.clock()
             if 'std' in features:
                 xc[-1, frame_num] = np.std(xw)
-            end = time.clock()
-            if(count % 111 == 0): print("STD: " + str(end-st))
-        st = time.clock()
+            #end = time.clock()
+            #if(count % 111 == 0): print("STD: " + str(end-st))
+        #st = time.clock()
         x2[i, :, :] = xc
-        end = time.clock()
-        print("ASSIGN: " + str(end-st))
+        #end = time.clock()
+        #print("ASSIGN: " + str(end-st))
   
     print(count)
     print(np.amax(x2))
