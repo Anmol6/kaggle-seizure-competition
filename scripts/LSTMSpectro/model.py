@@ -30,6 +30,16 @@ Only 2 epochs are needed as the dataset is very small.
 '''
 
 print('Loading data...')
+X_o = np.load('data/ffts/train_1_npy/X_new.npy')
+y_o = np.load('data/ffts/train_1_npy/y_new.py') 
+X_n = np.load('data/ffts/test_1_npy/X_new.npy')
+y_n = np.load('data/ffts/test_1_npy/y_new.npy')
+
+X_all = np.concatenate((X_o, X_n), axis = 0)
+y_all = np.concatenate((y_o, y_n), axis = 0)
+
+X_all[X_all < 0] = 0
+
 (X_train, y_train), (X_test, y_test) =  
 print(len(X_train), 'train sequences')
 print(len(X_test), 'test sequences')
