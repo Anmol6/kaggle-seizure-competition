@@ -14,7 +14,7 @@ from keras.layers import Convolution1D, MaxPooling1D
 from sklearn.model_selection import train_test_split
 import sklearn.metrics as metrics 
 
-save_path = 'models/LSTMSpectro/P1/test1.h5'
+save_path = 'models/LSTMSpectro/P1/test2.h5'
 
 print('Loading data...')
 X_o = np.load('data/ffts/train_1_npy/X_new.npy')
@@ -52,6 +52,9 @@ print(y_all)
 y_s[:, 1] = (y_all == 1).reshape(y_all.shape[0],)
 y_s[:, 0] = (y_all == 0).reshape(y_all.shape[0],)
 print(y_s)
+
+pos_weight = np.sum(y_s[:,0])/np.sum(y_s[:,1])
+print(pos_weight)
 
 max_features = 208 
 maxlen = 597
@@ -108,7 +111,7 @@ print('X_test shape:', X_test.shape)
 '''
 
 print('Train...')
-model.fit(X_train, y_train,class_weight={0: 1.0, 1: 9.14}, batch_size=batch_size
+model.fit(X_train, y_train,class_weight={0: 1.0, 1: pos_weight}, batch_size=batch_size
         , nb_epoch=nb_epoch,
           validation_data=(X_test, y_test))
 

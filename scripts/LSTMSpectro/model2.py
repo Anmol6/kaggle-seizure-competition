@@ -10,11 +10,16 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 from keras.layers import LSTM, Bidirectional
 from keras.layers import Convolution1D, MaxPooling1D
+from keras.callbacks import ModelCheckpoint
 
 from sklearn.model_selection import train_test_split
 import sklearn.metrics as metrics 
 
-save_path = 'models/LSTMSpectro/P2/test1.h5'
+#save_path = 'models/LSTMSpectro/P2/test2.h5'
+
+filepath="test3-{epoch:02d}-{val_acc:.2f}.hf5"
+checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+callbacks_list = [checkpoint]
 
 print('Loading data...')
 X_o = np.load('data/ffts/train_2_npy/X_new.npy')
@@ -53,6 +58,10 @@ y_s[:, 1] = (y_all == 1).reshape(y_all.shape[0],)
 y_s[:, 0] = (y_all == 0).reshape(y_all.shape[0],)
 print(y_s)
 
+pos_weight = np.sum(y_s[:,0])/np.sum(y_s[:,1])
+print(pos_weight)
+
+
 max_features = 208 
 maxlen = 597
 
@@ -66,7 +75,7 @@ lstm_output_size = 70
 
 # Training
 batch_size = 128 
-nb_epoch = 80
+nb_epoch = 33 
 
 '''
 Note:
@@ -80,7 +89,7 @@ model.add(Convolution1D(nb_filter=nb_filter,
                         border_mode='valid',
                         activation='relu',
                         subsample_length=1, input_shape=(maxlen,max_features)))
-model.add(Dropout(0.20))
+model.add(Dropout(0.25))
 
 #model.add(MaxPooling1D(pool_length=pool_length))
 model.add(Bidirectional(LSTM(lstm_output_size, return_sequences=False)))
@@ -108,15 +117,15 @@ print('X_test shape:', X_test.shape)
 '''
 
 print('Train...')
-model.fit(X_train, y_train,class_weight={0: 1.0, 1: 9.14}, batch_size=batch_size
-        , nb_epoch=nb_epoch,
+model.fit(X_train, y_train,class_weight={0: 1.0, 1: pos_weight}, batch_size=batch_size
+        , nb_epoch=nb_epoch, callbacks=callbacks_list,
           validation_data=(X_test, y_test))
 
 score, acc = model.evaluate(X_test, y_test, batch_size=batch_size)
 print('Test score:', score)
 print('Test accuracy:', acc)
 
-model.save(save_path)
+#model.save(save_path)
 
 preds = model.predict_proba(X_test)
 print(preds)
