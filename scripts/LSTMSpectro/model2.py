@@ -10,17 +10,66 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 from keras.layers import LSTM, Bidirectional
 from keras.layers import Convolution1D, MaxPooling1D
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import Callback, ModelCheckpoint
 
 from sklearn.model_selection import train_test_split
 import sklearn.metrics as metrics 
 
 #save_path = 'models/LSTMSpectro/P2/test2.h5'
 
-filepath="test3-{epoch:02d}-{val_acc:.2f}.hf5"
-checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-callbacks_list = [checkpoint]
+class AUCCheckpoint(Callback):
+    def __init__(self, filepath, X_train, y_train):
+        self.y_train = y_train
+        self.X_train = X_train
+        self.filepath = filepath
+    def on_train_begin(self, logs={}):
+        # don't bother below
+        self.best_auc = 0.6 
+        self.best_file = ''
+        self.aucs = []
+        self.aucs_x = []
+        self.losses = []
+        self.losses_x = []
+    
+    def on_train_end(self, logs={}):
+        return
 
+    def on_epoch_end(self, epoch, logs={}):
+        self.losses_x.append(logs.get('loss'))
+        self.losses.append(logs.get('val_loss'))
+
+        preds = self.model.predict_proba(self.model.validation_data[0])
+        roc_auc = metrics.roc_auc_score(self.model.validation_data[1][:,1], preds[:,1])
+
+        preds_x = self.model.predict_proba(X_train[0:600])
+        roc_auc_x = metrics.roc_auc_score(y_train[0:600][:,1], preds_x[:,1])
+        
+        print( 'AUC:  Train: {train:.2f}  Val: {val:.2f}'.format(train=roc_auc_x, val=roc_auc) )
+        
+        #print( 'AUC Val: {val:.3f}'.format(val=roc_auc) )
+        
+        if(roc_auc > self.best_auc):
+            self.best_auc = roc_auc
+            filepath = self.filepath.format(epoch=epoch, val_roc_auc=roc_auc) 
+            print( 'Saving best model...' )
+            self.model.save(filepath, overwrite=True)
+            self.best_file = filepath
+        else:
+            print( 'No improvement over best...' )
+        
+        self.aucs.append(roc_auc)
+        self.aucs_x.append(roc_auc_x)
+        return
+
+    def on_batch_begin(self, batch, logs={}):
+        return
+         
+    def on_batch_end(self, batch, logs={}):
+        return
+
+filepath = "models/LSTMSpectro/P2/test5-{epoch:02d}-{val_roc_auc:.3f}.h5"
+#filepath="test3-{epoch:02d}-{val_roc_auc:.2f}.h5"
+#checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 print('Loading data...')
 X_o = np.load('data/ffts/train_2_npy/X_new.npy')
 y_o = np.load('data/ffts/train_2_npy/y_new.npy') 
@@ -32,11 +81,11 @@ y_all = np.concatenate((y_o, y_n), axis = 0)
 
 # min and max inputs
 X_all[X_all == -np.inf] = -10
-X_all[X_all > 1000] = 1000
+X_all[X_all > 400] = 400 
 
 print(np.amax(X_all))
 print(np.amin(X_all))
-print(np.unravel_index(X_all.argmax(), X_all.shape))
+#print(np.unravel_index(X_all.argmax(), X_all.shape))
 
 X_all = np.swapaxes(X_all, 1, 2)
 '''
@@ -53,33 +102,46 @@ print(X_all.shape)
 
 # one hot encode
 y_s = np.zeros((y_all.shape[0], 2))
-print(y_all)
 y_s[:, 1] = (y_all == 1).reshape(y_all.shape[0],)
 y_s[:, 0] = (y_all == 0).reshape(y_all.shape[0],)
-print(y_s)
 
 pos_weight = np.sum(y_s[:,0])/np.sum(y_s[:,1])
-print(pos_weight)
+print('Class_ratio: ', pos_weight)
+
+X_train,X_test, y_train, y_test = train_test_split(X_all, y_s, test_size=0.25, stratify=y_all) 
+del X_all
+
+print(X_train.shape, 'train sequences')
+print(y_train.shape, 'test sequences')
+print(X_test.shape, 'test sequences')
+print(y_test.shape, 'test sequences')
+
+auc_checkpoint = AUCCheckpoint(filepath, X_train, y_train) 
+callbacks_list = [auc_checkpoint]
+
+
+##########################
+####MODEL#################
+##########################
 
 
 max_features = 208 
 maxlen = 597
 
 # Convolution
-filter_length = 2
-nb_filter = 64
+filter_length = 3
+nb_filter = 128 
 #pool_length = 4
 
 # LSTM
-lstm_output_size = 70
-
+lstm_output_size1 = 128
+lstm_output_size2 = 64
 # Training
 batch_size = 128 
-nb_epoch = 33 
+nb_epoch = 90 
 
 '''
 Note:
-batch_size is highly sensitive.
 '''
 print('Build model...')
 
@@ -89,10 +151,12 @@ model.add(Convolution1D(nb_filter=nb_filter,
                         border_mode='valid',
                         activation='relu',
                         subsample_length=1, input_shape=(maxlen,max_features)))
-model.add(Dropout(0.25))
+model.add(Dropout(0.35))
 
 #model.add(MaxPooling1D(pool_length=pool_length))
-model.add(Bidirectional(LSTM(lstm_output_size, return_sequences=False)))
+model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=False)))
+model.add(Dropout(0.20))
+model.add(Bidirectional(LSTM(lstm_output_size2, return_sequences=False)))
 model.add(Dropout(0.20))
 model.add(Dense(2))
 model.add(Activation('softmax'))
@@ -101,12 +165,6 @@ model.compile(loss='binary_crossentropy',
               optimizer='adam',
                 metrics=['accuracy'])
 
-
-X_train,X_test, y_train, y_test = train_test_split(X_all, y_s, test_size=0.2, stratify=y_all) 
-print(X_train.shape, 'train sequences')
-print(y_train.shape, 'test sequences')
-print(X_test.shape, 'test sequences')
-print(y_test.shape, 'test sequences')
 
 '''
 print('Pad sequences (samples x time)')
@@ -134,8 +192,9 @@ print('ROC AUC:', roc_auc)
 
 fpr, tpr, thresholds = metrics.roc_curve(y_test[:,1], preds[:,1])
 print(thresholds)
-plt.figure()
+plt.figure(1)
 lw = 2
+
 plt.plot(fpr, tpr, color='darkorange',
                  lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
 plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
@@ -145,4 +204,19 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver operating characteristic example')
 plt.legend(loc="lower right")
+
+plt.figure(2)
+plt.plot(auc_checkpoint.aucs, label='Val', color='navy')
+plt.plot(auc_checkpoint.aucs_x, label='Train', color='black')
+plt.legend(loc="lower right")
+plt.ylabel('AUC')
+plt.xlabel('Epoch')
+
+plt.figure(3)
+plt.plot(auc_checkpoint.losses, label='Val', color='navy')
+plt.plot(auc_checkpoint.losses_x, label='Train', color='black')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(loc="lower right")
 plt.show()
+
