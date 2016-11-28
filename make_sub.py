@@ -22,7 +22,7 @@ print(preds1.shape)
 del X_s_1
 del model1
 
-model2 = load_model('models/LSTMSpectro/P2/test3.hf5')
+model2 = load_model('models/LSTMSpectro/P2/test6-04-0.794.h5')
 X_s_2 = np.load('data/ffts/test_2_new/X_new_s.npy')
 X_s_2 = preproc(X_s_2)
 preds2 = model2.predict_proba(X_s_2)[:,1]
@@ -43,4 +43,4 @@ del model3
 preds_submission = np.concatenate((preds1,preds2,preds3))
 print(preds_submission.shape)
 sample_submission['Class'] = preds_submission
-sample_submission.to_csv('submissions/LSTMSpectro232.csv', index=False)
+sample_submission.to_csv('submissions/LSTMSpectro262.csv', index=False)

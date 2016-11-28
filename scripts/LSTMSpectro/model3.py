@@ -15,7 +15,7 @@ from keras.callbacks import Callback, ModelCheckpoint
 from sklearn.model_selection import train_test_split
 import sklearn.metrics as metrics 
 
-save_path = 'models/LSTMSpectro/P3/test4end.h5'
+save_path = 'models/LSTMSpectro/P3/test6end.h5'
 
 class AUCCheckpoint(Callback):
     def __init__(self, filepath, X_train, y_train):
@@ -41,8 +41,8 @@ class AUCCheckpoint(Callback):
         preds = self.model.predict_proba(self.model.validation_data[0])
         roc_auc = metrics.roc_auc_score(self.model.validation_data[1][:,1], preds[:,1])
 
-        preds_x = self.model.predict_proba(X_train[0:600])
-        roc_auc_x = metrics.roc_auc_score(y_train[0:600][:,1], preds_x[:,1])
+        preds_x = self.model.predict_proba(self.X_train[0:600])
+        roc_auc_x = metrics.roc_auc_score(self.y_train[0:600][:,1], preds_x[:,1])
         
         print( 'AUC:  Train: {train:.2f}  Val: {val:.2f}'.format(train=roc_auc_x, val=roc_auc) )
         
@@ -67,7 +67,7 @@ class AUCCheckpoint(Callback):
     def on_batch_end(self, batch, logs={}):
         return
 
-filepath = "models/LSTMSpectro/P3/test4-{epoch:02d}-{val_roc_auc:.3f}.h5"
+filepath = "models/LSTMSpectro/P3/test6-{epoch:02d}-{val_roc_auc:.3f}.h5"
 print('Loading data...')
 X_o = np.load('data/ffts/train_3_npy/X_new.npy')
 y_o = np.load('data/ffts/train_3_npy/y_new.npy') 
@@ -79,7 +79,7 @@ y_all = np.concatenate((y_o, y_n), axis = 0)
 
 # min and max inputs
 X_all[X_all == -np.inf] = -10
-X_all[X_all > 1000] = 1000
+X_all[X_all > 200] = 200
 
 print(np.amax(X_all))
 print(np.amin(X_all))
@@ -124,16 +124,16 @@ maxlen = 597
 
 # Convolution
 filter_length = 3
-nb_filter = 256 
+nb_filter = 512 
 #pool_length = 4
 
 # LSTM
-lstm_output_size1 = 128 
-lstm_output_size2 = 64 
+lstm_output_size1 = 150 
+lstm_output_size2 = 100
 
 # Training
 batch_size = 64 
-nb_epoch = 190 
+nb_epoch = 110 
 
 '''
 Note:
@@ -147,13 +147,11 @@ model.add(Convolution1D(nb_filter=nb_filter,
                         border_mode='valid',
                         activation='relu',
                         subsample_length=1, input_shape=(maxlen,max_features)))
-model.add(Dropout(0.35))
+model.add(Dropout(0.20))
 
 #model.add(MaxPooling1D(pool_length=pool_length))
 model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=True)))
-model.add(Dropout(0.25))
-model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=True)))
-model.add(Dropout(0.20))
+model.add(Dropout(0.15))
 model.add(Bidirectional(LSTM(lstm_output_size2, return_sequences=False)))
 model.add(Dropout(0.10))
 model.add(Dense(2))

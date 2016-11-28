@@ -7,7 +7,7 @@ np.random.seed(1337)  # for reproducibility
 
 from keras.preprocessing import sequence
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation
+from keras.layers import Dense, Dropout, Activation, Reshape
 from keras.layers import LSTM, Bidirectional
 from keras.layers import Convolution1D, MaxPooling1D
 from keras.callbacks import Callback, ModelCheckpoint
@@ -15,7 +15,7 @@ from keras.callbacks import Callback, ModelCheckpoint
 from sklearn.model_selection import train_test_split
 import sklearn.metrics as metrics 
 
-#save_path = 'models/LSTMSpectro/P2/test2.h5'
+save_path = 'models/LSTMSpectro/P2/test7end.h5'
 
 class AUCCheckpoint(Callback):
     def __init__(self, filepath, X_train, y_train):
@@ -30,7 +30,8 @@ class AUCCheckpoint(Callback):
         self.aucs_x = []
         self.losses = []
         self.losses_x = []
-    
+        self.best_val_loss = 0.7
+
     def on_train_end(self, logs={}):
         return
 
@@ -54,6 +55,12 @@ class AUCCheckpoint(Callback):
             print( 'Saving best model...' )
             self.model.save(filepath, overwrite=True)
             self.best_file = filepath
+        elif(self.losses[-1] < self.best_val_loss):
+            self.best_val_loss = self.losses[-1]
+            filepath = self.filepath.format(epoch=epoch, val_roc_auc=roc_auc) 
+            print( 'Saving best model...' )
+            self.model.save(filepath, overwrite=True)
+            self.best_file = filepath
         else:
             print( 'No improvement over best...' )
         
@@ -67,7 +74,7 @@ class AUCCheckpoint(Callback):
     def on_batch_end(self, batch, logs={}):
         return
 
-filepath = "models/LSTMSpectro/P2/test5-{epoch:02d}-{val_roc_auc:.3f}.h5"
+filepath = "models/LSTMSpectro/P2/test7-{epoch:02d}-{val_roc_auc:.3f}.h5"
 #filepath="test3-{epoch:02d}-{val_roc_auc:.2f}.h5"
 #checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 print('Loading data...')
@@ -129,8 +136,8 @@ max_features = 208
 maxlen = 597
 
 # Convolution
-filter_length = 3
-nb_filter = 128 
+filter_length = 1
+nb_filter = 256 
 #pool_length = 4
 
 # LSTM
@@ -138,7 +145,7 @@ lstm_output_size1 = 128
 lstm_output_size2 = 64
 # Training
 batch_size = 128 
-nb_epoch = 90 
+nb_epoch = 80 
 
 '''
 Note:
@@ -151,13 +158,13 @@ model.add(Convolution1D(nb_filter=nb_filter,
                         border_mode='valid',
                         activation='relu',
                         subsample_length=1, input_shape=(maxlen,max_features)))
-model.add(Dropout(0.35))
+model.add(Dropout(0.40))
 
 #model.add(MaxPooling1D(pool_length=pool_length))
-model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=False)))
+model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=True)))
 model.add(Dropout(0.20))
 model.add(Bidirectional(LSTM(lstm_output_size2, return_sequences=False)))
-model.add(Dropout(0.20))
+model.add(Dropout(0.10))
 model.add(Dense(2))
 model.add(Activation('softmax'))
 
@@ -183,7 +190,7 @@ score, acc = model.evaluate(X_test, y_test, batch_size=batch_size)
 print('Test score:', score)
 print('Test accuracy:', acc)
 
-#model.save(save_path)
+model.save(save_path)
 
 preds = model.predict_proba(X_test)
 print(preds)

@@ -4,11 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-np.random.seed(1337)  # for reproducibility
+np.random.seed(1336)  # for reproducibility
 
 from keras.preprocessing import sequence
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation
+from keras.layers import Dense, Dropout, Activation, Reshape, Flatten
 from keras.layers import LSTM, Bidirectional
 from keras.layers import Convolution1D, MaxPooling1D
 from keras.callbacks import Callback, ModelCheckpoint
@@ -31,7 +31,8 @@ class AUCCheckpoint(Callback):
         self.aucs_x = []
         self.losses = []
         self.losses_x = []
-    
+        self.best_val_loss = 0.7 
+
     def on_train_end(self, logs={}):
         return
 
@@ -55,9 +56,16 @@ class AUCCheckpoint(Callback):
             print( 'Saving best model...' )
             self.model.save(filepath, overwrite=True)
             self.best_file = filepath
+	elif(self.losses[-1] < self.best_val_loss):
+            self.best_val_loss = self.losses[-1]
+            filepath = self.filepath.format(epoch=epoch, val_roc_auc=roc_auc)
+            print( 'Saving best model...' )
+            self.model.save(filepath, overwrite=True)
+            self.best_file = filepath
+
         else:
             print( 'No improvement over best...' )
-        
+              
         self.aucs.append(roc_auc)
         self.aucs_x.append(roc_auc_x)
         return
@@ -69,21 +77,22 @@ class AUCCheckpoint(Callback):
         return
 
 def load_data(patient):
-    X_o = np.load('data/ffts/train_' + str(patient)+ '_npy/X_new.npy')
-    y_o = np.load('data/ffts/train_' + str(patient)+ '_npy/y_new.npy') 
-    X_n = np.load('data/ffts/test_' + str(patient)+ '_npy/X_new.npy')
-    y_n = np.load('data/ffts/test_' + str(patient)+ '_npy/y_new.npy')
+    X_o = np.load('data/ffts/6band/train_' + str(patient)+ '_npy/X_new.npy')
+    y_o = np.load('data/ffts/6band/train_' + str(patient)+ '_npy/y_new.npy') 
+    print(X_o[0])
+    X_n = np.load('data/ffts/6band/test_' + str(patient)+ '_npy/X_new.npy')
+    print(X_n[0])
+    y_n = np.load('data/ffts/6band/test_' + str(patient)+ '_npy/y_new.npy')
 
     X_all = np.concatenate((X_o, X_n), axis = 0)
     y_all = np.concatenate((y_o, y_n), axis = 0)  
     return X_all, y_all  
 
-for c in range 3:
-
+for c in range(1):
     patient = c+1
+    patient = 3
 
-
-    filepath = "models/CNNpectro/P" + str(patient)+"/test5-{epoch:02d}-{val_roc_auc:.3f}.h5"
+    filepath = "models/CNNSpectro/P" + str(patient)+"/test1-{epoch:02d}-{val_roc_auc:.3f}.h5"
 
     X_all, y_all = load_data(patient)
 
@@ -92,11 +101,12 @@ for c in range 3:
 
 
     # min and max inputs
-    X_all[X_all == -np.inf] = -10
-    X_all[X_all > 400] = 400 
+    X_all[X_all < 0] = 0
+    X_all[X_all > 150] = 150 
 
     print(np.amax(X_all))
     print(np.amin(X_all))
+    print(X_all.shape)
     #print(np.unravel_index(X_all.argmax(), X_all.shape))
 
     X_all = np.swapaxes(X_all, 1, 2)
@@ -137,16 +147,18 @@ for c in range 3:
     ##########################
 
 
-    max_features = X_all.shape[2]*X_all.shape[3]
+    max_features = X_all.shape[2]
     maxlen = X_all.shape[1]
 
     # Convolution
-    filter_length = 3
-    nb_filter = 128 
+    filter_length = 1
+    nb_filter = 512 
+    nb_filter2 = 256 
+    nb_filter3 = 128 
     #pool_length = 4
     # Training
-    batch_size = 128 
-    nb_epoch = 90 
+    #batch_size = 256 
+    nb_epoch = 140 
     
     del X_all
 
@@ -161,12 +173,25 @@ for c in range 3:
                             border_mode='valid',
                             activation='relu',
                             subsample_length=1, input_shape=(maxlen,max_features)))
-    model.add(Dropout(0.35))
+    #model.add(Dropout(0.75))
 
+    model.add(Convolution1D(nb_filter=nb_filter2,
+                            filter_length=1,
+                            border_mode='valid',
+                            activation='relu',
+                            subsample_length=1))
+
+    #model.add(Dropout(0.50))
+    model.add(Convolution1D(nb_filter=nb_filter3,
+                            filter_length=1,
+                            border_mode='valid',
+                            activation='relu',
+                            subsample_length=1))
+    
+    model.add(Flatten())
     #model.add(MaxPooling1D(pool_length=pool_length))
-    model.add(Dropout(0.20))
     #model.add(Bidirectional(LSTM(lstm_output_size2, return_sequences=False)))
-    model.add(Dropout(0.20))
+    #model.add(Dropout(0.25))
     model.add(Dense(2))
     model.add(Activation('softmax'))
 
@@ -184,11 +209,11 @@ for c in range 3:
     '''
 
     print('Train...')
-    model.fit(X_train, y_train,class_weight={0: 1.0, 1: pos_weight}, batch_size=batch_size
+    model.fit(X_train, y_train,class_weight={0: 1.0, 1: pos_weight}
             , nb_epoch=nb_epoch, callbacks=callbacks_list,
               validation_data=(X_test, y_test))
 
-    score, acc = model.evaluate(X_test, y_test, batch_size=batch_size)
+    score, acc = model.evaluate(X_test, y_test)
     print('Test score:', score)
     print('Test accuracy:', acc)
 

@@ -19,6 +19,7 @@ def compute_X_Y_opt(direc, outdir, data_length_sec, sampling_frequency, nfreq_ba
    
     # all files ending in mat or npy
     dataFiles = [x for x in os.listdir(direc) if x.endswith('.npy') or x.endswith('.mat')]
+    pickle.dump(dataFiles, open(os.path.join(outdir,'filenames.p'), 'wb')) 
     n = len( dataFiles )
     n_timesteps = (data_length_sec - win_length_sec) / stride_sec + 1
     n_fbins = nfreq_bands + 1 if 'std' in features else nfreq_bands
@@ -35,6 +36,7 @@ def compute_X_Y_opt(direc, outdir, data_length_sec, sampling_frequency, nfreq_ba
 
             label = safesplit.get_label(filename)
             print(filename + ' ' + label)
+            print(str(i) + '/' + str(n) + '] ' + filename + ' ' + label)
             if label is '1':
                 y[i] = 1
             elif label is '0':
@@ -128,9 +130,11 @@ def compute_X_test_new(direc, outdir, data_length_sec, sampling_frequency, nfreq
 
 def flush():
     inputdir = 'data'
-    outputdir = 'data/ffts'
+    outputdir = 'data/ffts/6band'
+    
     #files = ['train_1_npy', 'train_2_npy', 'train_3_npy', 'test_1_npy', 'test_2_npy', 'test_3_npy']
-    files = ['test_1_new','test_2_new','test_3_new']
+    files = ['train_3_npy','test_3_npy']
+    #files = ['test_1_new','test_2_new','test_3_new']
     indirs = [os.path.join(inputdir,x) for x in files]
     outdirs= [os.path.join(outputdir,x) for x in files]
     inouts = zip(indirs,outdirs)
@@ -150,18 +154,27 @@ def flush():
                 raise
     
     print(inouts)
-    
+      
     # now assign each thread a file
     p = Pool(len(inouts))
     p.map(doone, inouts)
 
 def doone(inout):
+    '''
     data_length_sec = 600
     sampling_frequency = 400
     nfreq_bands = 12    # can play around with these:
     win_length_sec = 4 
     stride_sec = 1
     features = "meanlog_std"  # will create a new additional bin of standard deviation of other bins
+    '''
+    data_length_sec = 600
+    sampling_frequency = 400
+    nfreq_bands = 6    # can play around with these:
+    win_length_sec = 60 
+    stride_sec = 60
+    features = "meanlog_std"
+        
 
     print(inout)
     
@@ -175,7 +188,7 @@ def doone(inout):
         if os.path.exists(os.path.join(inputdir, 'safe')):
             compute_X_Y_opt(os.path.join(inputdir,'safe'), outputdir, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
         
-        compute_X_test_new(inputdir, outputdir, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
+        #compute_X_test_new(inputdir, outputdir, data_length_sec, sampling_frequency, nfreq_bands, win_length_sec, stride_sec, features)
 
 
     except:
