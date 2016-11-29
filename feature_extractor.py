@@ -7,6 +7,14 @@ import pandas as pd
 from math import floor, log
 from scipy.stats import skew, kurtosis
 from scipy.io import loadmat   # For loading MATLAB data (.dat) files
+import os
+import sys, getopt
+
+from multiprocessing import Pool
+import errno
+import traceback
+import pickle
+import time
 
 '''
 Calculates the FFT of the epoch signal. Removes the DC component and normalizes the area to 1
@@ -574,9 +582,13 @@ def convertMatToDictionary(path):
 
 def calculate_features(file_name):
     
+    #f = np.load(file_name)
     f = convertMatToDictionary(file_name)
-    
-    fs = f['iEEGsamplingRate'][0,0]
+    ''' 
+    if f.shape == (): 
+        f = f['data'][()]
+    '''
+    fs = 400.0 
     eegData = f['data']
     [nt, nc] = eegData.shape
     print('EEG shape = ({} timepoints, {} channels)'.format(nt, nc))
@@ -587,8 +599,8 @@ def calculate_features(file_name):
     numSamps = int(floor(nt / subsampLen))      # Num of 1-min samples
     sampIdx = range(int(0),int((numSamps+1)*subsampLen),int(subsampLen))
      
-    functions = { 'shannon entropy': 'calcShannonEntropy(epoch, lvl, nt, nc, fs)'
-                 , 'spectral edge frequency': 'calcSpectralEdgeFreq(epoch, lvl, nt, nc, fs)'
+    functions = { #'shannon entropy': 'calcShannonEntropy(epoch, lvl, nt, nc, fs)'
+                 'spectral edge frequency': 'calcSpectralEdgeFreq(epoch, lvl, nt, nc, fs)'
                  , 'correlation matrix (channel)' : 'calcCorrelationMatrixChan(epoch)'
                  , 'correlation matrix (frequency)' : 'calcCorrelationMatrixFreq(epoch, lvl, nt, nc, fs)'
                  , 'shannon entropy (dyad)' : 'calcShannonEntropyDyad(epoch, lvl, nt, nc, fs)'
@@ -598,19 +610,20 @@ def calculate_features(file_name):
                  , 'hjorth complexity' : 'calcComplexity(epoch)'
                  , 'skewness' : 'calcSkewness(epoch)'
                  , 'kurtosis' : 'calcKurtosis(epoch)'
-                 , 'Petrosian FD' : 'calcPetrosianFD(epoch)'
-                 , 'Hjorth FD' : 'calcHjorthFD(epoch)'
-                 , 'Katz FD' : 'calcKatzFD(epoch)'
-                 , 'Higuchi FD' : 'calcHiguchiFD(epoch)'
+                 #, 'Petrosian FD' : 'calcPetrosianFD(epoch)'
+                 #, 'Hjorth FD' : 'calcHjorthFD(epoch)'
+                 #, 'Katz FD' : 'calcKatzFD(epoch)'
+                 #, 'Higuchi FD' : 'calcHiguchiFD(epoch)'
                 # , 'Detrended Fluctuation Analysis' : 'calcDFA(epoch)'  # DFA takes a long time!
                  }
     
     # Initialize a dictionary of pandas dataframes with the features as keys
     feat = {key[0]: pd.DataFrame() for key in functions.items()}   
+    
+    print('processing file {}'.format(file_name))
 
     for i in range(1, numSamps+1):
     
-        print('processing file {} epoch {}'.format(file_name,i))
         epoch = eegData[sampIdx[i-1]:sampIdx[i], :]  
    
         for key in functions.items():
@@ -620,6 +633,63 @@ def calculate_features(file_name):
     for key in functions.items():
         feat[key[0]]['Epoch #'] = range(numSamps)
         feat[key[0]] = feat[key[0]].set_index('Epoch #')
-            
 
     return feat
+
+
+def flush():
+    inputdir = 'data'
+    outputdir = 'data/stats'
+    
+    #files = ['train_1_npy', 'train_2_npy', 'train_3_npy', 'test_1_npy', 'test_2_npy', 'test_3_npy']
+    #files = ['train_1', 'train_2', 'train_3', 'test_1', 'test_2', 'test_3']
+    #files = ['train_3_npy','test_3_npy']
+    files = ['test_1_new','test_2_new','test_3_new']
+    indirs = [os.path.join(inputdir,x) for x in files]
+    outdirs= [os.path.join(outputdir,x) for x in files]
+    inouts = zip(indirs,outdirs)
+
+    # create the output directories
+    try:
+        os.makedirs(outputdir)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+   
+    for filen in outdirs:
+        try:
+            os.makedirs(filen)
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+    
+    print(inouts)
+      
+    # now assign each thread a file
+    p = Pool(len(inouts))
+    p.map(doone, inouts)
+
+def doone(inout):
+    print(inout)
+    
+    try:
+        inputdir, outputdir = inout
+
+        #direc = os.path.join(inputdir, 'safe')
+        direc = inputdir 
+        if os.path.exists(direc):
+            dataFiles = [x for x in os.listdir(direc) if x.endswith('.npy') or x.endswith('.mat')]
+
+            for i, filename in enumerate(dataFiles):
+                base, _ = os.path.splitext(os.path.basename(filename))
+                #feat = calculate_features(os.path.join(inputdir,'safe', filename))
+                feat = calculate_features(os.path.join(inputdir, filename))
+                pickle.dump(feat, open(os.path.join(outputdir, base + '.p'),'wb'))
+
+    except:
+        # Put all exception text into an exception and raise that
+        print(inout)
+        raise Exception("".join(traceback.format_exception(*sys.exc_info())))
+
+if __name__ == "__main__":
+    flush()

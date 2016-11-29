@@ -11,11 +11,12 @@ from keras.layers import Dense, Dropout, Activation, Reshape
 from keras.layers import LSTM, Bidirectional
 from keras.layers import Convolution1D, MaxPooling1D
 from keras.callbacks import Callback, ModelCheckpoint
+from keras.layers.noise import GaussianNoise
 
 from sklearn.model_selection import train_test_split
 import sklearn.metrics as metrics 
 
-save_path = 'models/LSTMSpectro/P2/test7end.h5'
+save_path = 'models/LSTMSpectro/P1/test8end.h5'
 
 class AUCCheckpoint(Callback):
     def __init__(self, filepath, X_train, y_train):
@@ -74,14 +75,14 @@ class AUCCheckpoint(Callback):
     def on_batch_end(self, batch, logs={}):
         return
 
-filepath = "models/LSTMSpectro/P2/test7-{epoch:02d}-{val_roc_auc:.3f}.h5"
+filepath = "models/LSTMSpectro/P1/test8-{epoch:02d}-{val_roc_auc:.3f}.h5"
 #filepath="test3-{epoch:02d}-{val_roc_auc:.2f}.h5"
 #checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 print('Loading data...')
-X_o = np.load('data/ffts/train_2_npy/X_new.npy')
-y_o = np.load('data/ffts/train_2_npy/y_new.npy') 
-X_n = np.load('data/ffts/test_2_npy/X_new.npy')
-y_n = np.load('data/ffts/test_2_npy/y_new.npy')
+X_o = np.load('data/ffts/train_1_npy/X_new.npy')
+y_o = np.load('data/ffts/train_1_npy/y_new.npy') 
+X_n = np.load('data/ffts/test_1_npy/X_new.npy')
+y_n = np.load('data/ffts/test_1_npy/y_new.npy')
 
 X_all = np.concatenate((X_o, X_n), axis = 0)
 y_all = np.concatenate((y_o, y_n), axis = 0)
@@ -115,7 +116,7 @@ y_s[:, 0] = (y_all == 0).reshape(y_all.shape[0],)
 pos_weight = np.sum(y_s[:,0])/np.sum(y_s[:,1])
 print('Class_ratio: ', pos_weight)
 
-X_train,X_test, y_train, y_test = train_test_split(X_all, y_s, test_size=0.25, stratify=y_all) 
+X_train,X_test, y_train, y_test = train_test_split(X_all, y_s, test_size=0.33, stratify=y_all, random_state =1336) 
 del X_all
 
 print(X_train.shape, 'train sequences')
@@ -136,15 +137,15 @@ max_features = 208
 maxlen = 597
 
 # Convolution
-filter_length = 1
-nb_filter = 256 
+filter_length = 3
+nb_filter = 200 
 #pool_length = 4
 
 # LSTM
 lstm_output_size1 = 128
 lstm_output_size2 = 64
 # Training
-batch_size = 128 
+batch_size = 200 
 nb_epoch = 80 
 
 '''
@@ -156,15 +157,15 @@ model = Sequential()
 model.add(Convolution1D(nb_filter=nb_filter,
                         filter_length=filter_length,
                         border_mode='valid',
-                        activation='relu',
+                        activation='sigmoid',
                         subsample_length=1, input_shape=(maxlen,max_features)))
-model.add(Dropout(0.40))
+model.add(Dropout(0.50))
 
 #model.add(MaxPooling1D(pool_length=pool_length))
-model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=True)))
-model.add(Dropout(0.20))
-model.add(Bidirectional(LSTM(lstm_output_size2, return_sequences=False)))
-model.add(Dropout(0.10))
+model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=False, activation='sigmoid')))
+model.add(Dropout(0.30))
+model.add(Dense(128,activation='sigmoid'))
+model.add(Dropout(0.30))
 model.add(Dense(2))
 model.add(Activation('softmax'))
 

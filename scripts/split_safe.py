@@ -47,7 +47,7 @@ def main(argv):
     inputf = ''
     outputf = ''
     try:
-        opts, args = getopt.getopt(argv, "i:o:", ["idir=", "odir"])
+        opts, args = getopt.getopt(argv, "i:o:", ["idir", "odir"])
     except getopt.GetoptError:
         print( 'test.py -i <inputdir> -o <outputdir>' )
         sys.exit(2)

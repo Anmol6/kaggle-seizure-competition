@@ -47,5 +47,3 @@ for p in patients:
 	roc_auc = metrics.roc_auc_score(y_test[:,1], preds[:,1])
 	print('ROC AUC:', roc_auc)
 
-
-

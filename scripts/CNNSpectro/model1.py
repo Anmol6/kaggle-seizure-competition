@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-np.random.seed(1336)  # for reproducibility
+np.random.seed(1334)  # for reproducibility
 
 from keras.preprocessing import sequence
 from keras.models import Sequential
@@ -83,6 +83,7 @@ def load_data(patient):
     X_n = np.load('data/ffts/6band/test_' + str(patient)+ '_npy/X_new.npy')
     print(X_n[0])
     y_n = np.load('data/ffts/6band/test_' + str(patient)+ '_npy/y_new.npy')
+    print(y_n[0:])
 
     X_all = np.concatenate((X_o, X_n), axis = 0)
     y_all = np.concatenate((y_o, y_n), axis = 0)  
@@ -146,7 +147,8 @@ for c in range(1):
     ####MODEL#################
     ##########################
 
-
+    print('X_all',X_all.shape)
+    print('X_test',X_train.shape)
     max_features = X_all.shape[2]
     maxlen = X_all.shape[1]
 
@@ -160,7 +162,6 @@ for c in range(1):
     #batch_size = 256 
     nb_epoch = 140 
     
-    del X_all
 
     '''
     Note:
@@ -189,6 +190,7 @@ for c in range(1):
                             subsample_length=1))
     
     model.add(Flatten())
+    model.add(Dense(512))
     #model.add(MaxPooling1D(pool_length=pool_length))
     #model.add(Bidirectional(LSTM(lstm_output_size2, return_sequences=False)))
     #model.add(Dropout(0.25))

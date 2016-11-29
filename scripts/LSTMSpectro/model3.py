@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-np.random.seed(1337)  # for reproducibility
+np.random.seed(1336)  # for reproducibility
 
 from keras.preprocessing import sequence
 from keras.models import Sequential
@@ -15,7 +15,7 @@ from keras.callbacks import Callback, ModelCheckpoint
 from sklearn.model_selection import train_test_split
 import sklearn.metrics as metrics 
 
-save_path = 'models/LSTMSpectro/P3/test6end.h5'
+save_path = 'models/LSTMSpectro/P3/test8end.h5'
 
 class AUCCheckpoint(Callback):
     def __init__(self, filepath, X_train, y_train):
@@ -39,6 +39,8 @@ class AUCCheckpoint(Callback):
         self.losses.append(logs.get('val_loss'))
 
         preds = self.model.predict_proba(self.model.validation_data[0])
+        #print(preds)
+        #print(self.model.validation_data[1][:,1])
         roc_auc = metrics.roc_auc_score(self.model.validation_data[1][:,1], preds[:,1])
 
         preds_x = self.model.predict_proba(self.X_train[0:600])
@@ -67,7 +69,7 @@ class AUCCheckpoint(Callback):
     def on_batch_end(self, batch, logs={}):
         return
 
-filepath = "models/LSTMSpectro/P3/test6-{epoch:02d}-{val_roc_auc:.3f}.h5"
+filepath = "models/LSTMSpectro/P3/test8-{epoch:02d}-{val_roc_auc:.3f}.h5"
 print('Loading data...')
 X_o = np.load('data/ffts/train_3_npy/X_new.npy')
 y_o = np.load('data/ffts/train_3_npy/y_new.npy') 
@@ -77,13 +79,27 @@ y_n = np.load('data/ffts/test_3_npy/y_new.npy')
 X_all = np.concatenate((X_o, X_n), axis = 0)
 y_all = np.concatenate((y_o, y_n), axis = 0)
 
+'''
+X_all = np.delete(X_all,(1059), axis = 0)
+y_all = np.delete(y_all,(1059), axis = 0)
+X_all = np.delete(X_all,(481), axis = 0)
+y_all = np.delete(y_all,(481), axis = 0)
+X_all = np.delete(X_all,(662), axis = 0)
+y_all = np.delete(y_all,(662), axis = 0)
+X_all = np.delete(X_all,(2097), axis = 0)
+y_all = np.delete(y_all,(2097), axis = 0)
+X_all = np.delete(X_all,(2082), axis = 0)
+y_all = np.delete(y_all,(2082), axis = 0)
+'''
+
 # min and max inputs
-X_all[X_all == -np.inf] = -10
-X_all[X_all > 200] = 200
+X_all[X_all == -np.inf] = 0 
+X_all[X_all > 200] = 200 
 
 print(np.amax(X_all))
 print(np.amin(X_all))
 print(np.unravel_index(X_all.argmax(), X_all.shape))
+print(np.unravel_index(X_all.argmin(), X_all.shape))
 
 X_all = np.swapaxes(X_all, 1, 2)
 '''
@@ -98,6 +114,11 @@ plt.show()
 '''
 print(X_all.shape)
 
+rng_state = np.random.get_state()
+np.random.shuffle(X_all)
+np.random.set_state(rng_state)
+np.random.shuffle(y_all)
+
 # one hot encode
 y_s = np.zeros((y_all.shape[0], 2))
 print(y_all)
@@ -108,9 +129,10 @@ print(y_s)
 pos_weight = np.sum(y_s[:,0])/np.sum(y_s[:,1])
 print(pos_weight)
 
-X_train,X_test, y_train, y_test = train_test_split(X_all, y_s, test_size=0.2, stratify=y_all) 
+X_train,X_test, y_train, y_test = train_test_split(X_all, y_s, test_size=0.2, stratify=y_all, random_state =1335) 
 del X_all
 print(X_train.shape, 'train sequences')
+print(X_train[0])
 print(y_train.shape, 'test sequences')
 print(X_test.shape, 'test sequences')
 print(y_test.shape, 'test sequences')
@@ -123,21 +145,19 @@ max_features = 208
 maxlen = 597
 
 # Convolution
-filter_length = 3
-nb_filter = 512 
+filter_length = 1
+nb_filter = 80 
 #pool_length = 4
 
 # LSTM
-lstm_output_size1 = 150 
-lstm_output_size2 = 100
-
+lstm_output_size1 = 80 
+lstm_output_size2 = 64
 # Training
-batch_size = 64 
-nb_epoch = 110 
+batch_size = 330 
+nb_epoch = 80 
 
 '''
 Note:
-batch_size is highly sensitive.
 '''
 print('Build model...')
 
@@ -145,17 +165,16 @@ model = Sequential()
 model.add(Convolution1D(nb_filter=nb_filter,
                         filter_length=filter_length,
                         border_mode='valid',
-                        activation='relu',
+                        activation='sigmoid',
                         subsample_length=1, input_shape=(maxlen,max_features)))
-model.add(Dropout(0.20))
+model.add(Dropout(0.30))
 
 #model.add(MaxPooling1D(pool_length=pool_length))
-model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=True)))
-model.add(Dropout(0.15))
-model.add(Bidirectional(LSTM(lstm_output_size2, return_sequences=False)))
-model.add(Dropout(0.10))
+model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=False)))
+model.add(Dropout(0.20))
 model.add(Dense(2))
 model.add(Activation('softmax'))
+
 
 model.compile(loss='binary_crossentropy',
               optimizer='adam',

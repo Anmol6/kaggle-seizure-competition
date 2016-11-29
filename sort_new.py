@@ -2,8 +2,8 @@ import pickle
 import numpy as np
 import os
 
-in_path = 'data/ffts/test_3_new'
-num = '3'
+in_path = 'data/ffts/6band/test_1_new'
+num = '1'
 
 f_u = pickle.load(open(os.path.join(in_path,'filenames.p'), 'rb'))
 X_u = np.load(os.path.join(in_path, 'X_new.npy'))
