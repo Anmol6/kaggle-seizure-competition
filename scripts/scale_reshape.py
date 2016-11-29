@@ -1,3 +1,8 @@
+from data_scaler import scale_across_features, scale_across_time
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+
 # Accepts X's of shape (examples, channels, time-windows, bins)
 # X_trains and X_tests must be list
 def scale_reshape(X_trains, X_tests):
