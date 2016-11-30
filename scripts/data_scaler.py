@@ -25,6 +25,7 @@ def scale_across_features(x, x_test=None, scalers=None):
 
 
 def scale_across_time(x, x_test=None, scalers=None):
+    # expects examples, channels, features, timesteps
     n_examples = x.shape[0]
     n_channels = x.shape[1]
     n_fbins = x.shape[2]
