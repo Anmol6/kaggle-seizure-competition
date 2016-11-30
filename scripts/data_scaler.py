@@ -33,7 +33,6 @@ def scale_across_time(x, x_test=None, scalers=None):
     if scalers is None:
         scalers = [None] * n_channels
 
-    print x.shape
     for i in range(n_channels):
         xi = np.transpose(x[:, i, :, :], axes=(0, 2, 1))
         xi = xi.reshape((n_examples * n_timesteps, n_fbins))
@@ -54,4 +53,4 @@ def scale_across_time(x, x_test=None, scalers=None):
         xi = xi.reshape((n_examples, n_timesteps, n_fbins))
         xi = np.transpose(xi, axes=(0, 2, 1))
         x[:, i, :, :] = xi
-	return x, scalers
+    return x, scalers
