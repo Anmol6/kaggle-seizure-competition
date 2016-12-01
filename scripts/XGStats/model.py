@@ -15,11 +15,13 @@ from sklearn.metrics import roc_auc_score
 random_state =1337
 
 def load_data(patient):
-	folder = 'data/stats/'
-        X_all = np.load(folder + 'train_' + str(patient)+ '_npy/X_train.npy')
-	y_all = np.load(folder + 'train_' + str(patient)+ '_npy/y_train.npy') 
+	folder = 'data/stats1/'
+    X_train = np.load(folder + 'train_' + str(patient)+ '_npy/X_fstrain.npy')
+	y_train = np.load(folder + 'train_' + str(patient)+ '_npy/y_fstrain.npy') 
+    X_test = np.load(folder + 'train_' + str(patient)+ '_npy/X_fsval.npy')
+	y_test = np.load(folder + 'train_' + str(patient)+ '_npy/y_fsval.npy') 
 	X_sub = np.load(folder + 'test_' + str(patient)+ '_new/X_test.npy') 
-	return X_all, y_all, X_sub 
+	return X_train, y_train, X_test, y_test, X_sub 
 
 patients  = [1,2,3]
 
@@ -34,7 +36,7 @@ svc_params = {'penalty':'l2',
 
 bc_params = {'base_estimator':LinearSVC(**svc_params),
              'n_estimators':96, 
-             'max_samples':0.10, 
+             'max_samples':0.15, 
              'max_features':0.8,  
              'oob_score':True,
              # if you have tons of memory (i.e. 32gb ram + 32gb swap)
@@ -48,28 +50,48 @@ bc_params = {'base_estimator':LinearSVC(**svc_params),
 submission_preds = []
 
 for p in patients:
-	X_all, y_all, X_sub = load_data(p)
-	X_all = np.swapaxes(X_all, 1, 2)
-
-	X_all = X_all.reshape(X_all.shape[0],X_all.shape[1]*X_all.shape[2]*X_all.shape[3])
-	print(X_all.shape)
+	X_train, y_train, X_test, y_test, X_sub = load_data(p)
+	print(X_train.shape)
+    X_train = np.swapaxes(X_train, 1, 2)
+    X_test = np.swapaxes(X_test, 1, 2)
+    
+	X_train = X_train.reshape(X_train.shape[0],X_train.shape[1]*X_train.shape[2]*X_train.shape[3])
+	X_test = X_test.reshape(X_test.shape[0],X_test.shape[1]*X_test.shape[2]*X_test.shape[3])
+	print(X_train.shape)
 	X_sub = X_sub.reshape(X_sub.shape[0],X_sub.shape[1]*X_sub.shape[2]*X_sub.shape[3])
-        
+
+    rng_state = np.random.get_state()
+    np.random.shuffle(X_train)
+    np.random.set_state(rng_state)
+    np.random.shuffle(y_train)
+
+    rng_state = np.random.get_state()
+    np.random.shuffle(X_test)
+    np.random.set_state(rng_state)
+    np.random.shuffle(y_test)
+
+
 	# one hot encode
-	y_s = np.zeros((y_all.shape[0], 2))
-	y_s[:, 1] = (y_all == 1).reshape(y_all.shape[0],)
-	y_s[:, 0] = (y_all == 0).reshape(y_all.shape[0],)
-        pos_weight = np.sum(y_s[:,0])/np.sum(y_s[:,1])
+    y_s = np.zeros((y_train.shape[0], 2))
+	y_s[:, 1] = (y_train == 1).reshape(y_train.shape[0],)
+	y_s[:, 0] = (y_train == 0).reshape(y_train.shape[0],)
+        '''
+        y_test = np.zeros((y_test1.shape[0], 2))
+        y_test[:, 1] = (y_test1 == 1).reshape(y_test1.shape[0],)
+        y_test[:, 0] = (y_test1 == 0).reshape(y_test1.shape[0],)
+        '''
+
+    pos_weight = np.sum(y_s[:,0])/np.sum(y_s[:,1])
 	
-        X_train,X_valid, y_train, y_valid = train_test_split(X_all, y_all, test_size=0.20, stratify=y_all, random_state = 42) 
-	del X_all
+        #X_train,X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.20, stratify=y_all, random_state = 42) 
+	#del X_all
         
         #bc = BC(**bc_params)
         #bc.fit(X_train,y_train.ravel())
         
 	eta = 0.2
-	max_depth = 4
-	subsample = 0.6
+	max_depth = 3
+	subsample = 0.5
 	colsample_bytree = 0.7
 	start_time = time.time()
 
@@ -91,18 +113,18 @@ for p in patients:
 	test_size = 0.2
 
 	print('Length train:', len(X_train))
-	print('Length valid:', len(X_valid))
+	print('Length test:', len(X_test))
 
 	dtrain = xgb.DMatrix(X_train, y_train)
-	dvalid = xgb.DMatrix(X_valid, y_valid)
+	dtest = xgb.DMatrix(X_test, y_test)
 
-	watchlist = [(dtrain, 'train'), (dvalid, 'eval')]
+	watchlist = [(dtrain, 'train'), (dtest, 'eval')]
 	gbm = xgb.train(params, dtrain, num_boost_round, evals=watchlist,
 			early_stopping_rounds=early_stopping_rounds, verbose_eval=True)
 
 	print("Validating...")
-	check = gbm.predict(xgb.DMatrix(X_valid), ntree_limit=gbm.best_iteration+1)
-	score = roc_auc_score(y_valid, check)
+	check = gbm.predict(xgb.DMatrix(X_test), ntree_limit=gbm.best_iteration+1)
+	score = roc_auc_score(y_test, check)
 	print('Check error value: {:.6f}'.format(score))
 
 	print("Predict test set...")
@@ -137,4 +159,4 @@ sample_submission = pd.read_csv('submissions/sample_submission.csv')
 print(len(submission_preds))
 preds_submission = np.concatenate(tuple(submission_preds))
 sample_submission['Class'] = preds_submission
-sample_submission.to_csv('submissions/XGBOOST002.csv', index=False)
+sample_submission.to_csv('submissions/XGBOOST003.csv', index=False)
