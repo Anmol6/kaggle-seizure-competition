@@ -15,8 +15,9 @@ from keras.layers.noise import GaussianNoise
 
 from sklearn.model_selection import train_test_split
 import sklearn.metrics as metrics 
+from keras.regularizers import l2, activity_l2
 
-save_path = 'models/LSTMSpectro/P1/test8end.h5'
+save_path = 'models/LSTMSpectro/P3/test13end.h5'
 
 class AUCCheckpoint(Callback):
     def __init__(self, filepath, X_train, y_train):
@@ -43,8 +44,8 @@ class AUCCheckpoint(Callback):
         preds = self.model.predict_proba(self.model.validation_data[0])
         roc_auc = metrics.roc_auc_score(self.model.validation_data[1][:,1], preds[:,1])
 
-        preds_x = self.model.predict_proba(X_train[0:600])
-        roc_auc_x = metrics.roc_auc_score(y_train[0:600][:,1], preds_x[:,1])
+        preds_x = self.model.predict_proba(X_train[:600])
+        roc_auc_x = metrics.roc_auc_score(y_train[:600][:,1], preds_x[:,1])
         
         print( 'AUC:  Train: {train:.2f}  Val: {val:.2f}'.format(train=roc_auc_x, val=roc_auc) )
         
@@ -75,49 +76,75 @@ class AUCCheckpoint(Callback):
     def on_batch_end(self, batch, logs={}):
         return
 
-filepath = "models/LSTMSpectro/P1/test8-{epoch:02d}-{val_roc_auc:.3f}.h5"
+filepath = "models/LSTMSpectro/P3/test13-{epoch:02d}-{val_roc_auc:.3f}.h5"
 #filepath="test3-{epoch:02d}-{val_roc_auc:.2f}.h5"
 #checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 print('Loading data...')
-X_o = np.load('data/ffts/train_1_npy/X_new.npy')
-y_o = np.load('data/ffts/train_1_npy/y_new.npy') 
-X_n = np.load('data/ffts/test_1_npy/X_new.npy')
-y_n = np.load('data/ffts/test_1_npy/y_new.npy')
+'''
+X_o = np.load('data/ffts/train_2_npy/X_new.npy')
+y_o = np.load('data/ffts/train_2_npy/y_new.npy') 
+X_n = np.load('data/ffts/test_2_npy/X_new.npy')
+y_n = np.load('data/ffts/test_2_npy/y_new.npy')
 
 X_all = np.concatenate((X_o, X_n), axis = 0)
 y_all = np.concatenate((y_o, y_n), axis = 0)
+'''
 
-# min and max inputs
-X_all[X_all == -np.inf] = -10
-X_all[X_all > 400] = 400 
+#X_all = np.load('data/ffts/train_1_npy/X_ftrain.npy')
+#y_all = np.load('data/ffts/train_1_npy/y_ftrain.npy') 
 
-print(np.amax(X_all))
-print(np.amin(X_all))
+#print(np.amax(X_all))
+#print(np.amin(X_all))
 #print(np.unravel_index(X_all.argmax(), X_all.shape))
 
-X_all = np.swapaxes(X_all, 1, 2)
 '''
 img2 = plt.imshow(X_all[0][0:,0,0:-1].T,interpolation='nearest', cmap = cm.gist_rainbow, origin='lower')
 plt.show()
 '''
-X_all = X_all.reshape(X_all.shape[0],X_all.shape[1],X_all.shape[2]*X_all.shape[3])
+#X_all = X_all.reshape(X_all.shape[0],X_all.shape[1],X_all.shape[2]*X_all.shape[3])
 '''
 X_all[X_all>4] = 4
 img2 = plt.imshow(X_all[782][0:,0:].T,interpolation='nearest', cmap = cm.gist_rainbow, origin='lower')
 plt.show()
 '''
-print(X_all.shape)
+#print(X_all.shape)
+'''
+rng_state = np.random.get_state()
+np.random.shuffle(X_all)
+np.random.set_state(rng_state)
+np.random.shuffle(y_all)
+'''
 
 # one hot encode
-y_s = np.zeros((y_all.shape[0], 2))
-y_s[:, 1] = (y_all == 1).reshape(y_all.shape[0],)
-y_s[:, 0] = (y_all == 0).reshape(y_all.shape[0],)
+X_train = np.load('data/ffts/train_3_npy/X_fstrain.npy')
+y_train1 = np.load('data/ffts/train_3_npy/y_fstrain.npy') 
+X_test = np.load('data/ffts/train_3_npy/X_fsval.npy')
+y_test1 = np.load('data/ffts/train_3_npy/y_fsval.npy')
+X_train = X_train.reshape(X_train.shape[0],X_train.shape[1],X_train.shape[2]*X_train.shape[3])
+X_test = X_test.reshape(X_test.shape[0],X_test.shape[1],X_test.shape[2]*X_test.shape[3])
 
-pos_weight = np.sum(y_s[:,0])/np.sum(y_s[:,1])
+rng_state = np.random.get_state()
+np.random.shuffle(X_train)
+np.random.set_state(rng_state)
+np.random.shuffle(y_train1)
+
+rng_state = np.random.get_state()
+np.random.shuffle(X_test)
+np.random.set_state(rng_state)
+np.random.shuffle(y_test1)
+
+y_train = np.zeros((y_train1.shape[0], 2))
+y_train[:, 1] = (y_train1 == 1).reshape(y_train1.shape[0],)
+y_train[:, 0] = (y_train1 == 0).reshape(y_train1.shape[0],)
+y_test = np.zeros((y_test1.shape[0], 2))
+y_test[:, 1] = (y_test1 == 1).reshape(y_test1.shape[0],)
+y_test[:, 0] = (y_test1 == 0).reshape(y_test1.shape[0],)
+
+pos_weight = np.sum(y_train[:,0])/np.sum(y_train[:,1])
 print('Class_ratio: ', pos_weight)
 
-X_train,X_test, y_train, y_test = train_test_split(X_all, y_s, test_size=0.33, stratify=y_all, random_state =1336) 
-del X_all
+#X_train,X_test, y_train, y_test = train_test_split(X_all, y_s, test_size=0.33, stratify=y_all, random_state =1336) 
+#del X_all
 
 print(X_train.shape, 'train sequences')
 print(y_train.shape, 'test sequences')
@@ -138,14 +165,14 @@ maxlen = 597
 
 # Convolution
 filter_length = 3
-nb_filter = 200 
+nb_filter = 400 
 #pool_length = 4
 
 # LSTM
 lstm_output_size1 = 128
 lstm_output_size2 = 64
 # Training
-batch_size = 200 
+batch_size = 128 
 nb_epoch = 80 
 
 '''
@@ -155,16 +182,23 @@ print('Build model...')
 
 model = Sequential()
 model.add(Convolution1D(nb_filter=nb_filter,
-                        filter_length=filter_length,
+                        filter_length=3,
                         border_mode='valid',
-                        activation='sigmoid',
+                        init = 'he_normal',
+                        activation='relu',
                         subsample_length=1, input_shape=(maxlen,max_features)))
 model.add(Dropout(0.50))
-
+model.add(Convolution1D(nb_filter=200,
+                        filter_length=1,
+                        border_mode='valid',
+                        init = 'he_normal',
+                        activation='relu',
+                        subsample_length=1, input_shape=(maxlen,max_features)))
+model.add(Dropout(0.50))
 #model.add(MaxPooling1D(pool_length=pool_length))
-model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=False, activation='sigmoid')))
+model.add(Bidirectional(LSTM(lstm_output_size1, return_sequences=False)))
 model.add(Dropout(0.30))
-model.add(Dense(128,activation='sigmoid'))
+model.add(Dense(128,activation='sigmoid', activity_regularizer = activity_l2(0.001)))
 model.add(Dropout(0.30))
 model.add(Dense(2))
 model.add(Activation('softmax'))

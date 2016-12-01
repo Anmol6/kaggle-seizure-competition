@@ -48,7 +48,7 @@ def scale_across_time(x, x_test=None, scalers=None):
             scalers[i] = StandardScaler()
             scalers[i].fit(xi_complete)
 
-        xi = scalers[i].transform(xi)
+        #xi = scalers[i].transform(xi)
 
         xi = xi.reshape((n_examples, n_timesteps, n_fbins))
         xi = np.transpose(xi, axes=(0, 2, 1))
