@@ -99,6 +99,11 @@ def fix_data(x, x_test):
     
     # impute and then standardize
     # reshape to examples,timesteps*channels*features to impute in each channel/timestep
+    x[x == -np.inf] = np.nan 
+    x[x == np.inf] = np.nan 
+    x_test[x_test == -np.inf] = np.nan 
+    x_test[x_test == np.inf] = np.nan 
+    
     x, x_test = impute(x, x_test)
 
     # standardize expects examples, channels, features, timesteps
@@ -113,7 +118,7 @@ def fix_data(x, x_test):
 
     # now standardize
     #print(x[1,0,0,:]) 
-    _, scalers = scale_across_time(np.copy(x), x_test=np.copy(x_test))
+    _, scalers = scale_across_time(x, x_test=x_test)
     #print(x[1,0,0,:]) 
 
     for i in range(n_channels):
@@ -166,7 +171,51 @@ def save_fixed_data():
         np.save(os.path.join(traindir, 'X_train.npy'), X_train)
         np.save(os.path.join(traindir, 'y_train.npy'), y_train)
         np.save(os.path.join(testnewdir, 'X_test.npy'), X_test)
-        pickle.dump(scalers, open(os.path.join(traindir,'scalers.p'), 'wb')) 
+        pickle.dump(scalers, open(os.path.join(traindir,'scalers.p'), 'wb'))
+
+def save_fixed_ffts():
+    direc = 'data/ffts/6band'
+    for i in range(3):
+        patient = i+1
+        testnewdir = os.path.join(direc, 'test_' + str(patient) + '_new')
+        traindir = os.path.join(direc, 'train_' + str(patient) + '_npy')
+        testolddir = os.path.join(direc, 'test_' + str(patient) + '_npy')
+        
+        X_o = np.load(os.path.join(traindir, 'X_new.npy'))
+        y_o = np.load(os.path.join(traindir, 'y_new.npy'))
+        X_n = np.load(os.path.join(testolddir, 'X_new.npy'))
+        y_n = np.load(os.path.join(testolddir, 'y_new.npy'))
+
+        X_train = np.concatenate((X_o, X_n), axis = 0)
+        del X_n
+        del X_o
+
+        y_train = np.concatenate((y_o, y_n), axis = 0)
+        del y_n
+        del y_o
+        
+        X_test = np.load(os.path.join(testnewdir, 'X_new_s.npy'))
+        
+        # convert to examples, timesteps, channels, feat
+        X_train = np.swapaxes(X_train, 1, 2)
+        X_test = np.swapaxes(X_test, 1, 2)
+       
+
+        print(X_train.shape) 
+        print(X_test[3,:,5,0]) 
+
+        X_train, X_test, scalers = fix_data(X_train, X_test)
+        print(X_train.shape) 
+        print(X_test[3,:,5,0]) 
+        
+        np.save(os.path.join(traindir, 'X_ftrain.npy'), X_train)
+        del X_train
+        np.save(os.path.join(traindir, 'y_ftrain.npy'), y_train)
+        del y_train
+        np.save(os.path.join(testnewdir, 'X_ftest_s.npy'), X_test)
+        del X_test
+        pickle.dump(scalers, open(os.path.join(traindir,'scalers.p'), 'wb'))
+        del scalers 
 
 if __name__ == '__main__':
-    save_fixed_data()
+    save_fixed_ffts()
