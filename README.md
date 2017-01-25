@@ -1,4 +1,4 @@
-# Solution to Kaggle competition: Melbourne University Seizure prediction
+### Solution to Kaggle competition: Melbourne University Seizure prediction
 
 Link: https://www.kaggle.com/c/melbourne-university-seizure-prediction
 
@@ -8,16 +8,17 @@ There were significant challenges faced due to the specifics of the domain of th
 1) There are far more inter-ictal observations than pre-ictal due to the rare occurences of seizures. This was tackled by scaling the loss of pre-ictal observations in the training phase.  
 2) The dataset is very big and doesn't fit on our computers' RAM. Fortunately, raw data is not necessary for accurate forecasting. FFT's were computed that significantly reduced the size of the dataset by several orders of magnitude.
 
-Pre-processing:
+## Pre-processing:
 1) Raw Spectrogram
 ![alt tag](https://github.com/Anmol6/kaggle-seizure-competition/blob/master/img/postprocessfft12band_1.png)
 
 2) Bag of Features
 
-Techniques that have been tried:
+## Techniques that have been tried:
 
 Deep Models on raw spectrograms
-1) Bi-directional LSTM
+
+# 1) Bi-directional LSTM
 
 Initially we attempted to train LSTM models on raw time series signal.
 However due to the large size of the data training times were prohibitively long especially for hyper paramater tuning.
@@ -32,29 +33,33 @@ Here we used a 1D Convolutional layers to feed into a Bi-directional LSTM RNN.
 We tried various settings for the convolutional layers. We tried kernels of size 1, 3 and 5 in the time direction.
 5 performed poorly, due to overfitting, but 3 performed slightly better than 1 being able to capture some of the temporal difference features of the spectrogam.
 
-2) Convolutional Neural Network
+# 2) Convolutional Neural Network
 
 The convolutional neural network trained on highly compressed spectrogram with only 20 steps and 6 bands. 1D Convolutions in time were used with no stride and kernel size 1.
 A global pooling layer was implemented and used to capture statistical properties between time steps.
 The output was fed through a densely connected layer.
 
 Statistical Models on bag of features
-3) XGBoost
+
+# 3) XGBoost
 
 The king of kaggle competitions performed admirably and was the fastest model to iterate on due to its speed and robustness to hyperparameterization. Additionally, it suffered very little from feature selection and so we included almost all computed features in training XGBoost.
-4) Random Forest
+
+# 4) Random Forest
 
 Similar to XGBoost, random forest required minimal adjustment and performed well on bagged features.
-5) SVM
+
+# 5) SVM
 
 Bag of features were fed through an RBF kernel PCA to reduce correlated dimensions, imrpove regularization and introduce non-linearity to the model. Bagged Linear SVMs were trained on the kPCA outputs to produce decent probability distributions. Seperate SVMs were also trained with different subsets of the features in order to get a smoother decision boundary and better regularization. This approach worked better than using softmax SVMs.
-6) Logistic
+
+# 6) Logistic
 
 Logistic Regression was briefly attempted initially, but was unable to produce appreciable accuracy.
 
-Post-processing:
+## Post-processing:
 
-Improvements and winning solutions:
+## Improvements and winning solutions:
 
 
-References:
+## References:
