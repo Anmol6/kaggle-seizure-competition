@@ -1,4 +1,4 @@
-### Solution to Kaggle competition: Melbourne University Seizure prediction
+# Solution to Kaggle competition: Melbourne University Seizure prediction
 
 Link: https://www.kaggle.com/c/melbourne-university-seizure-prediction
 
@@ -13,12 +13,15 @@ There were significant challenges faced due to the specifics of the domain of th
 ![alt tag](https://github.com/Anmol6/kaggle-seizure-competition/blob/master/img/postprocessfft12band_1.png)
 
 2) Bag of Features
+A large collection of features were computed. Most of these features were computed on ~30s time windows with no overlap although some were computed across the whole sample.
+The majority of these features were selected based on related literature and some were general statistical features for time series signals.
+
 
 ## Techniques that have been tried:
 
 Deep Models on raw spectrograms
 
-# 1) Bi-directional LSTM
+### 1) Bi-directional LSTM
 
 Initially we attempted to train LSTM models on raw time series signal.
 However due to the large size of the data training times were prohibitively long especially for hyper paramater tuning.
@@ -27,13 +30,13 @@ In general we found that training from raw time series signals led to strong ove
 
 Much better results were achieved by using spectrograms.
 We tried spectrograms with various resolutions in time and frequency.
-Eventually we settled on an ensemble of long 1200 timestep and short 300 timestep spectrograms with 12 frequency bands each.
+Eventually we settled on an ensemble of long 1200 timestep (with 50% overlap) and short 300 timestep (with no overlap) spectrograms with 12 frequency bands each.
 We also found that including standard deviation for each timestep also improved accuracy. From limited testing, it seemed that other statistical features did not have a large impact on accuracy, although time did not permit further investigation.
 Here we used a 1D Convolutional layers to feed into a Bi-directional LSTM RNN.
 We tried various settings for the convolutional layers. We tried kernels of size 1, 3 and 5 in the time direction.
 5 performed poorly, due to overfitting, but 3 performed slightly better than 1 being able to capture some of the temporal difference features of the spectrogam.
 
-# 2) Convolutional Neural Network
+### 2) Convolutional Neural Network
 
 The convolutional neural network trained on highly compressed spectrogram with only 20 steps and 6 bands. 1D Convolutions in time were used with no stride and kernel size 1.
 A global pooling layer was implemented and used to capture statistical properties between time steps.
@@ -41,23 +44,27 @@ The output was fed through a densely connected layer.
 
 Statistical Models on bag of features
 
-# 3) XGBoost
+### 3) XGBoost
 
 The king of kaggle competitions performed admirably and was the fastest model to iterate on due to its speed and robustness to hyperparameterization. Additionally, it suffered very little from feature selection and so we included almost all computed features in training XGBoost.
 
-# 4) Random Forest
+### 4) Random Forest
 
 Similar to XGBoost, random forest required minimal adjustment and performed well on bagged features.
 
-# 5) SVM
+### 5) SVM
 
 Bag of features were fed through an RBF kernel PCA to reduce correlated dimensions, imrpove regularization and introduce non-linearity to the model. Bagged Linear SVMs were trained on the kPCA outputs to produce decent probability distributions. Seperate SVMs were also trained with different subsets of the features in order to get a smoother decision boundary and better regularization. This approach worked better than using softmax SVMs.
 
-# 6) Logistic
+### 6) Logistic
 
 Logistic Regression was briefly attempted initially, but was unable to produce appreciable accuracy.
 
 ## Post-processing:
+
+We tried a few methods for ensembling the models. One significant feature of the competition was that we were evaluated on combined AUC over all patients rther than the average so median centering the distributions between patients helped to reduce variance due to the False/Positive distribution in the training set.
+For combining solutions we simply computed the geometric mean of the various models, scaled loosely based on their performance and generilization ability. The geometric mean seemed to performed better than the simple arithmetic mean and slightly better than the harmonic mean.
+We briefly investigated other methods of ensembling such as boosting and bayesian ensembling but lacked the time to evaluate these fully.
 
 ## Improvements and winning solutions:
 
