@@ -47,7 +47,6 @@ Several convolutional layers were implemented in the beginning of the model with
 
 A model in keras has a wrapper with scikit-learn classifier that allowed us to use RandomSearch to find optimal hyperparameters with a stratified k-fold cross-validation. However, due to the inflexibility of this dependency several features that we tried to execute (like Early Stopping) didn't not work in this setting. Given additional computational resources we could have run a larger random search with repititions and with larger number of folds. However, due to the time and compute constraints, the full power of convolution was not a big contribution to the achieved accuracy.
 
-Statistical Models on bag of features
 
 ### 3) XGBoost
 
@@ -71,7 +70,9 @@ We tried a few methods for ensembling the models. One significant feature of the
 For combining solutions we simply computed the geometric mean of the various models, scaled loosely based on their performance and generilization ability. The geometric mean seemed to performed better than the simple arithmetic mean and slightly better than the harmonic mean.
 We briefly investigated other methods of ensembling such as boosting and bayesian ensembling but lacked the time to evaluate these fully.
 
-## Improvements and winning solutions:
-
 
 ## References:
+Prediction of seizure likelihood with a long-term, implanted seizure advisory system in patients with drug-resistant epilepsy: a first-in-man study. http://www.sciencedirect.com/science/article/pii/S1474442213700759
+Machine Learning for Seizure Prediction:A Revamped 
+Approach. http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7275767&tag=1
+Predicting epileptic seizures. http://irakorshunova.github.io/2014/11/27/seizures.html
